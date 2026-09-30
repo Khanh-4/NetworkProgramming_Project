@@ -126,7 +126,9 @@ public class PerformanceChartGUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Bang ket qua so sanh"));
 
-        String[] columns = {"Nhom", "Phuong phap", "File", "Thoi gian (ms)", "Thong luong"};
+        // Cot cuoi co DON VI KHAC NHAU tuy nhom (nhom A: boi so, nhom B: MB/s)
+        // nen tieu de phai trung tinh, khong duoc ghi cung "Thong luong".
+        String[] columns = {"Nhom", "Phuong phap", "File", "Thoi gian (ms)", "So sanh trong nhom"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -187,7 +189,27 @@ public class PerformanceChartGUI extends JFrame {
             + "4. BAY THUONG GAP:\n"
             + "   X  Quen flush() voi BufferedOutputStream => mat du lieu cuoi\n"
             + "   X  Quen dong stream => resource leak, file bi lock\n"
-            + "   OK Luon dung try-with-resources de tu dong dong stream\n"
+            + "   OK Luon dung try-with-resources de tu dong dong stream\n\n"
+            + "5. CACH DO DE SO LIEU DANG TIN:\n"
+            + "   Do 1 lan la SAI: lan chay dau con cache lanh + JIT chua bien dich,\n"
+            + "   va o muc 7-11 ms thi rieng sai so lam tron da la +/-14%.\n"
+            + "   Nhom B chi chenh nhau vai ms nen rat de dao thu tu neu do au.\n"
+            + "   Xu ly: moi phuong phap deu qua MedianTimer (warm-up + trung vi),\n"
+            + "   va thoi gian luu bang NANO-giay thay vi long millisecond.\n\n"
+            + "6. HAI NHOM KHONG SO CHEO NHAU:\n"
+            + "   Nhom A chay file 1MB, nhom B chay file 10MB (byte-by-byte qua cham\n"
+            + "   nen khong the dung file lon). Vi vay bieu do ve tach 2 khoi, moi\n"
+            + "   khoi mot thang do rieng. So dong cua nhom A voi nhom B la SAI.\n\n"
+            + "7. KET QUA PHU THUOC NEN TANG - DUNG KET LUAN VOI:\n"
+            + "   Ket qua nhom A (buffer cuu code doc tung byte) rat on dinh,\n"
+            + "   lap lai bao nhieu lan cung ra cung ket luan.\n"
+            + "   Nhung o nhom B, THU TU xep hang giua 8KB / 32KB / 64KB co the\n"
+            + "   DAO NGUOC giua cac lan chay va giua cac he dieu hanh, vi chung\n"
+            + "   chi chenh nhau vai ms. Vay nen:\n"
+            + "   - DUNG ket luan 'buffer cang lon cang nhanh' tu mot lan chay\n"
+            + "   - Chi ket luan duoc rang o nhom B chenh lech DA NHO di nhieu\n"
+            + "     so voi nhom A\n"
+            + "   - Muon chon co buffer toi uu thi phai DO tren moi truong that\n"
         );
         tabs.addTab("Ly thuyet", new JScrollPane(theory));
 
@@ -265,9 +287,15 @@ public class PerformanceChartGUI extends JFrame {
     /**
      * Đổ kết quả vào bảng.
      *
-     * Cột "Thong luong" chỉ có nghĩa khi so sánh TRONG CÙNG một nhóm, vì hai
-     * nhóm chạy trên hai kích thước file khác nhau. Cột "Nhom" có để người đọc
-     * thấy ngay ranh giới đó thay vì so nhầm dòng 1 với dòng 6.
+     * Cột cuối chỉ có nghĩa khi so sánh TRONG CÙNG một nhóm, vì hai nhóm chạy
+     * trên hai kích thước file khác nhau. Cột "Nhom" có để người đọc thấy ngay
+     * ranh giới đó thay vì so nhầm dòng 1 với dòng 6.
+     *
+     * Hai nhóm dùng HAI ĐƠN VỊ khác nhau nên đơn vị được ghi thẳng vào từng ô:
+     *   - Nhóm A: bội số so với bản không buffer → trả lời "buffer lợi mấy lần?"
+     *   - Nhóm B: MB/s → trả lời "đạt được bao nhiêu thông lượng?"
+     * Ghi đơn vị vào ô thay vì vào tiêu đề cột, vì một tiêu đề không thể đúng
+     * cho cả hai nhóm cùng lúc.
      */
     private void fillResultTable() {
         if (results == null) {
@@ -279,9 +307,8 @@ public class PerformanceChartGUI extends JFrame {
         for (CopyResult r : results) {
             boolean isGroupA = r.fileSizeMB() == SMALL_FILE_MB;
 
-            // Nhom A quan tam "nhanh hon bao nhieu lan", nhom B quan tam thong luong
             String metric = isGroupA
-                    ? String.format("%.1fx", r.speedupOver(slowestSmall))
+                    ? String.format("%.1fx nhanh hon", r.speedupOver(slowestSmall))
                     : String.format("%.0f MB/s", r.throughputMBps());
 
             tableModel.addRow(new Object[]{

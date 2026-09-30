@@ -89,18 +89,29 @@ public class PerformanceChart {
      */
     private static void printResultTable(CopyResult[] results) {
         System.out.println();
-        System.out.println("╔═══════╦════════════════════════╦════════╦═════════════╦═════════════╗");
-        System.out.println("║ Nhóm  ║      Phương pháp       ║  File  ║ Thời gian   ║ Thông lượng ║");
-        System.out.println("╠═══════╬════════════════════════╬════════╬═════════════╬═════════════╣");
+        System.out.println("╔═══════╦════════════════════════╦════════╦═════════════╦══════════════════╗");
+        System.out.println("║ Nhóm  ║      Phương pháp       ║  File  ║ Thời gian   ║ So sánh trong nhóm║");
+        System.out.println("╠═══════╬════════════════════════╬════════╬═════════════╬══════════════════╣");
+
+        // Mốc so sánh của nhóm A: bản KHÔNG buffer, tức phần tử đầu tiên
+        CopyResult baselineA = results[0];
 
         for (CopyResult r : results) {
-            String group = r.fileSizeMB() == CopyBenchmark.SMALL_FILE_MB ? "A" : "B";
-            System.out.printf("║   %s   ║ %-22s ║ %-6s ║ %8.2f ms ║ %7.0f MB/s ║%n",
-                    group, r.methodName(), r.fileSizeMB() + " MB",
-                    r.ms(), r.throughputMBps());
+            boolean isGroupA = r.fileSizeMB() == CopyBenchmark.SMALL_FILE_MB;
+
+            // Hai nhóm dùng hai đơn vị khác nhau nên ghi đơn vị thẳng vào ô:
+            // nhóm A quá chậm (chưa tới 1 MB/s) nên hiển thị MB/s sẽ làm tròn
+            // thành 0 và trông như lỗi; bội số mới là con số có ý nghĩa ở đó.
+            String metric = isGroupA
+                    ? String.format("%.1fx nhanh hơn", r.speedupOver(baselineA))
+                    : String.format("%.0f MB/s", r.throughputMBps());
+
+            System.out.printf("║   %s   ║ %-22s ║ %-6s ║ %8.2f ms ║ %-17s║%n",
+                    isGroupA ? "A" : "B", r.methodName(), r.fileSizeMB() + " MB",
+                    r.ms(), metric);
         }
 
-        System.out.println("╚═══════╩════════════════════════╩════════╩═════════════╩═════════════╝");
+        System.out.println("╚═══════╩════════════════════════╩════════╩═════════════╩══════════════════╝");
         System.out.println("⚠️  CHỈ so sánh các dòng TRONG CÙNG một nhóm: nhóm A chạy trên file "
                 + CopyBenchmark.SMALL_FILE_MB + " MB,");
         System.out.println("    nhóm B chạy trên file " + CopyBenchmark.LARGE_FILE_MB
@@ -182,19 +193,43 @@ public class PerformanceChart {
                 }
             }
 
+            double spread = fastest.speedupOver(slowest);
+
             System.out.println("▸ Khi đã đọc THEO KHỐI, chênh lệch giữa các cỡ buffer:");
             System.out.printf("  Nhanh nhất: %-22s %.2f ms%n", fastest.methodName(), fastest.ms());
             System.out.printf("  Chậm nhất : %-22s %.2f ms%n", slowest.methodName(), slowest.ms());
-            System.out.printf("  → Chênh %.1f lần — nhỏ hơn hẳn so với nhóm A.%n",
-                    fastest.speedupOver(slowest));
-            System.out.println("  Lý do: khi buffer đã đủ lớn, nút thắt chuyển từ số system call");
-            System.out.println("  sang băng thông của đĩa, nên tăng buffer thêm không lợi bao nhiêu.");
+            System.out.printf("  → Chênh %.1f lần, nhỏ hơn hẳn mức chênh của nhóm A.%n", spread);
+            System.out.println();
+
+            // Kết luận bám theo số liệu thật, KHÔNG khẳng định cứng một chiều:
+            // mức lợi của buffer lớn phụ thuộc chi phí system call của từng OS.
+            // In đúng tên OS đang chạy, không đoán bừa là Windows hay Linux.
+            // CHỈ báo cáo ĐỘ LỚN của chênh lệch, KHÔNG khẳng định chiều hướng
+            // "buffer càng lớn càng nhanh": thứ tự xếp hạng ở nhóm này đảo qua
+            // đảo lại giữa các lần chạy, nên khẳng định chiều là không có căn cứ.
+            String os = System.getProperty("os.name", "không rõ");
+
+            if (spread >= 1.3) {
+                System.out.println("  Trên " + os + " (máy đang chạy), các cỡ khối vẫn còn");
+                System.out.println("  chênh nhau đáng kể → chi phí mỗi system call ở đây còn đủ lớn");
+                System.out.println("  để cỡ khối tạo ra khác biệt. Nhưng cỡ nào tối ưu thì phải ĐO,");
+                System.out.println("  vì thứ tự xếp hạng có thể đổi giữa các lần chạy.");
+            } else {
+                System.out.println("  Trên " + os + " (máy đang chạy), các cỡ khối gần như");
+                System.out.println("  KHÔNG khác nhau → nút thắt đã chuyển từ số system call sang");
+                System.out.println("  băng thông đĩa, nạp nhiều hơn mỗi lần cũng không nhanh thêm.");
+            }
+            System.out.println("  → Kết quả này PHỤ THUỘC hệ điều hành và filesystem: cùng đoạn code");
+            System.out.println("    chạy trên Linux/ext4 và Windows/NTFS có thể cho kết luận ngược nhau.");
             System.out.println();
         }
 
         System.out.println("▸ KHUYẾN NGHỊ SỬ DỤNG:");
         System.out.println("  - Luôn bọc BufferedInputStream/BufferedOutputStream khi đọc/ghi lắt nhắt");
-        System.out.println("  - Nếu đã tự đọc theo khối ≥ 8KB thì buffer không còn quan trọng");
+        System.out.println("    (đây là trường hợp buffer cứu được nhiều nhất, xem nhóm A)");
+        System.out.println("  - Nếu đã tự đọc theo khối lớn thì lợi ích của buffer giảm mạnh, thậm chí");
+        System.out.println("    có thể chậm hơn vì thêm một lần copy bộ nhớ trung gian");
+        System.out.println("  - Muốn chọn cỡ buffer tối ưu thì phải ĐO trên chính môi trường chạy thật");
         System.out.println("  - Luôn dùng try-with-resources để stream tự đóng và tự flush()");
         System.out.println();
     }
