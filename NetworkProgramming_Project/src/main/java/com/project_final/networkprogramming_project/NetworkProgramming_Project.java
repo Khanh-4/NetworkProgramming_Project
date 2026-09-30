@@ -53,10 +53,10 @@ public class NetworkProgramming_Project {
                     System.out.println("👋 Tạm biệt! Kết thúc chương trình.");
                     break;
                 case 1:
-                    StreamComparison.run();
+                    com.project_final.networkprogramming_project.detai1_bytecharstream.StreamComparisonGUI.run();
                     break;
                 case 2:
-                    PerformanceChart.run();
+                    com.project_final.networkprogramming_project.detai2_bufferedstream.PerformanceChartGUI.run();
                     break;
                 case 3:
                     runDetai3Menu(scanner);

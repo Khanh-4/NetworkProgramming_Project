@@ -1,0 +1,34 @@
+# Chuẩn hoá ký tự xuống dòng (line ending) cho cả nhóm
+# ======================================================
+#
+# VẤN ĐỀ NÀY ĐÃ XẢY RA THẬT:
+#   NetBeans trên Windows lưu file bằng CRLF, còn repo lưu bằng LF. Chỉ cần mở
+#   file rồi lưu lại là Git thấy TOÀN BỘ file đã đổi. Đã gặp một lần với
+#   NetworkProgramming_Project.java: thay đổi thật chỉ có 2 dòng nhưng Git báo
+#   414 dòng. Nếu 2 người cùng sửa file đó thì merge sẽ xung đột ở mọi dòng,
+#   rất dễ làm mất code thật lẫn trong đống xung đột giả.
+#
+# CÁCH HOẠT ĐỘNG:
+#   text=auto  -> Git tự nhận biết file nào là văn bản, file nào nhị phân
+#   eol=lf     -> file văn bản luôn dùng LF, cả trong repo lẫn trên đĩa
+#
+#   Đặt eol=lf tường minh thay vì dựa vào core.autocrlf của từng máy, để 3 người
+#   trong nhóm có cấu hình Git khác nhau vẫn cho ra kết quả giống hệt nhau.
+#
+# LƯU Ý: Java, NetBeans và Notepad của Windows đều đọc/ghi LF bình thường.
+* text=auto eol=lf
+
+# File nhị phân - Git TUYỆT ĐỐI không được đụng vào nội dung.
+# text=auto đã tự nhận ra phần lớn, nhưng khai báo tường minh thì chắc chắn hơn
+# và nói rõ ý định cho người đọc sau này.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.zip   binary
+*.jar   binary
+*.class binary
+*.dat   binary
+*.bin   binary
