@@ -25,6 +25,16 @@ public class StreamComparisonGUI extends JFrame {
     private static final int[] TEST_SIZES_MB = StreamBenchmark.defaultSizesMB();
     private static final String TEST_DIR = TestFileUtils.getTestDir();
 
+    /** Chiều cao một dòng của bảng kết quả (px). */
+    private static final int ROW_HEIGHT = 30;
+
+    /**
+     * Chiều cao cố định dành cho bảng kết quả (px).
+     * Tính từ số dòng thật + chỗ cho header và viền, để bảng vừa khít nội dung
+     * chứ không nở theo cửa sổ rồi để lại khoảng trắng.
+     */
+    private static final int TABLE_HEIGHT = TEST_SIZES_MB.length * ROW_HEIGHT + 80;
+
     // Components
     private JTable resultTable;
     private DefaultTableModel tableModel;
@@ -78,14 +88,20 @@ public class StreamComparisonGUI extends JFrame {
         centerSplit.setResizeWeight(0.44);
 
         // --- Cột trái: bảng ở trên, tab ở dưới ---
-        JPanel tablePanel = createTablePanel();
-        // Bảng chỉ có vài dòng nên không cần cao; phần dư nhường cho các tab
-        tablePanel.setPreferredSize(new Dimension(520, 210));
-
         JSplitPane leftSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        leftSplit.setResizeWeight(0.22); // giãn cửa sổ thì tab nở, bảng giữ nguyên
-        leftSplit.setTopComponent(tablePanel);
+        leftSplit.setTopComponent(createTablePanel());
         leftSplit.setBottomComponent(createBottomPanel());
+
+        // resizeWeight(0): MỌI phần dôi ra khi giãn cửa sổ đều dồn cho các tab,
+        // bảng giữ nguyên chiều cao. Bản trước dùng 0.22 nên bảng vẫn nở theo
+        // cửa sổ và để lại mảng trắng lớn bên dưới.
+        leftSplit.setResizeWeight(0);
+
+        // setDividerLocation(int) chỉ ăn SAU KHI cửa sổ đã hiện ra; gọi lúc đang
+        // dựng giao diện sẽ bị Swing ghi đè bằng preferred size của component.
+        // invokeLater đẩy lời gọi xuống sau setVisible(true) trong run().
+        SwingUtilities.invokeLater(() -> leftSplit.setDividerLocation(TABLE_HEIGHT));
+
         centerSplit.setLeftComponent(leftSplit);
 
         // --- Cột phải: biểu đồ ---
@@ -165,7 +181,7 @@ public class StreamComparisonGUI extends JFrame {
             }
         };
         resultTable = new JTable(tableModel);
-        resultTable.setRowHeight(30);
+        resultTable.setRowHeight(ROW_HEIGHT); // dùng chung hằng số với TABLE_HEIGHT
         resultTable.setFont(new Font("SansSerif", Font.PLAIN, 13));
         resultTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 12));
         resultTable.getTableHeader().setBackground(new Color(52, 58, 64));

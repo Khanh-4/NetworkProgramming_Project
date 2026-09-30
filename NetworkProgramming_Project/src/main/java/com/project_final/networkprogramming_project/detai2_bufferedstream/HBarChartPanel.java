@@ -65,7 +65,15 @@ public class HBarChartPanel extends JPanel {
     private static final int GROUP_TITLE_HEIGHT = 24;
     private static final int GROUP_SPACING = 6;
     private static final int BAR_GAP = 6;
-    private static final int MAX_BAR_HEIGHT = 46;
+    /**
+     * Chặn trên chiều cao mỗi thanh (px).
+     *
+     * Chỉ có 6 thanh nên nếu để chúng chia đều một panel cao ~1000px thì mỗi
+     * thanh dày tới 150px, trông thô. Nhưng chặn ở mức thấp (46px như bản trước)
+     * lại khiến nội dung chỉ lấp được 1/3 panel, thừa hai mảng trắng trên dưới.
+     * 100px là mức cân bằng: thanh vẫn ra hình thanh, mà lấp được phần lớn panel.
+     */
+    private static final int MAX_BAR_HEIGHT = 100;
     private static final int MIN_BAR_HEIGHT = 8;
     private static final int MIN_BAR_WIDTH = 3;
     private static final double HEADROOM = 1.12; // chừa chỗ cho nhãn giá trị

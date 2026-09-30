@@ -24,6 +24,18 @@ public class PerformanceChartGUI extends JFrame {
     private static final int SMALL_FILE_MB = CopyBenchmark.SMALL_FILE_MB;
     private static final int LARGE_FILE_MB = CopyBenchmark.LARGE_FILE_MB;
 
+    /** Chiều cao một dòng của bảng kết quả (px). */
+    private static final int ROW_HEIGHT = 28;
+
+    /** Số phương pháp sao chép mà CopyBenchmark đo (2 nhóm A + 4 nhóm B). */
+    private static final int METHOD_COUNT = 6;
+
+    /**
+     * Chiều cao cố định dành cho bảng kết quả (px), tính từ số dòng thật cộng
+     * chỗ cho header và viền — để bảng vừa khít nội dung, không nở theo cửa sổ.
+     */
+    private static final int TABLE_HEIGHT = METHOD_COUNT * ROW_HEIGHT + 80;
+
     // Components
     private JTable resultTable;
     private DefaultTableModel tableModel;
@@ -61,14 +73,18 @@ public class PerformanceChartGUI extends JFrame {
         centerSplit.setResizeWeight(0.48);
 
         // --- Cột trái: bảng ở trên, tab ở dưới ---
-        JPanel tablePanel = createTablePanel();
-        // Bảng chỉ 6 dòng nên không cần cao; phần dư nhường cho các tab
-        tablePanel.setPreferredSize(new Dimension(560, 250));
-
         JSplitPane leftSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
-        leftSplit.setResizeWeight(0.26); // giãn cửa sổ thì tab nở, bảng giữ nguyên
-        leftSplit.setTopComponent(tablePanel);
+        leftSplit.setTopComponent(createTablePanel());
         leftSplit.setBottomComponent(createBottomPanel());
+
+        // resizeWeight(0): phần dôi ra khi giãn cửa sổ dồn hết cho các tab,
+        // bảng giữ nguyên chiều cao thay vì nở ra rồi để lại khoảng trắng.
+        leftSplit.setResizeWeight(0);
+
+        // setDividerLocation(int) chỉ ăn SAU KHI cửa sổ đã hiện ra — xem
+        // StreamComparisonGUI (đề tài 1) để biết chi tiết.
+        SwingUtilities.invokeLater(() -> leftSplit.setDividerLocation(TABLE_HEIGHT));
+
         centerSplit.setLeftComponent(leftSplit);
 
         // --- Cột phải: biểu đồ ---
@@ -142,7 +158,7 @@ public class PerformanceChartGUI extends JFrame {
             public boolean isCellEditable(int row, int col) { return false; }
         };
         resultTable = new JTable(tableModel);
-        resultTable.setRowHeight(28);
+        resultTable.setRowHeight(ROW_HEIGHT); // dùng chung hằng số với TABLE_HEIGHT
         resultTable.setFont(new Font("SansSerif", Font.PLAIN, 12));
         resultTable.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 11));
         resultTable.getTableHeader().setBackground(new Color(52, 58, 64));
@@ -209,16 +225,20 @@ public class PerformanceChartGUI extends JFrame {
             + "   Nhom A chay file 1MB, nhom B chay file 10MB (byte-by-byte qua cham\n"
             + "   nen khong the dung file lon). Vi vay bieu do ve tach 2 khoi, moi\n"
             + "   khoi mot thang do rieng. So dong cua nhom A voi nhom B la SAI.\n\n"
-            + "7. KET QUA PHU THUOC NEN TANG - DUNG KET LUAN VOI:\n"
-            + "   Ket qua nhom A (buffer cuu code doc tung byte) rat on dinh,\n"
-            + "   lap lai bao nhieu lan cung ra cung ket luan.\n"
-            + "   Nhung o nhom B, THU TU xep hang giua 8KB / 32KB / 64KB co the\n"
-            + "   DAO NGUOC giua cac lan chay va giua cac he dieu hanh, vi chung\n"
-            + "   chi chenh nhau vai ms. Vay nen:\n"
-            + "   - DUNG ket luan 'buffer cang lon cang nhanh' tu mot lan chay\n"
-            + "   - Chi ket luan duoc rang o nhom B chenh lech DA NHO di nhieu\n"
-            + "     so voi nhom A\n"
-            + "   - Muon chon co buffer toi uu thi phai DO tren moi truong that\n"
+            + "7. BA KET LUAN DA KIEM CHUNG (lap lai qua nhieu lan chay):\n"
+            + "   (a) Doc/ghi TUNG BYTE: buffer nhanh hon hon 100 lan.\n"
+            + "       Day la ket qua vung nhat, lan nao chay cung vay.\n"
+            + "   (b) Buffered 8KB ~= Unbuf chunk 8KB (chenh duoi 5%).\n"
+            + "       Boc BufferedStream len code VON DA doc khoi 8KB thi gan\n"
+            + "       nhu khong duoc gi, vi khong cat them duoc system call nao.\n"
+            + "   (c) Buffer >= 32KB nhanh hon 8KB khoang 1.2-1.3 lan.\n\n"
+            + "8. DIEU KHONG KET LUAN DUOC:\n"
+            + "   Co buffer nao TOI UU (32KB hay 64KB?) thi KHONG tra loi duoc.\n"
+            + "   Chung chi chenh nhau vai ms nen thu tu dao qua dao lai giua cac\n"
+            + "   lan chay, NGAY TREN CUNG MOT MAY: da quan sat thay 2 lan dau\n"
+            + "   64KB nhanh nhat, lan thu 3 lai la 32KB.\n"
+            + "   => Muon chon co buffer toi uu thi phai do nhieu lan tren chinh\n"
+            + "      moi truong chay that, dung tin mot con so co dinh.\n"
         );
         tabs.addTab("Ly thuyet", new JScrollPane(theory));
 

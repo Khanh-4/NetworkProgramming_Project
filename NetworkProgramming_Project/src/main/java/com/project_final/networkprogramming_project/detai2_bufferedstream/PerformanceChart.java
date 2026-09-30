@@ -25,6 +25,13 @@ public class PerformanceChart {
     /** Độ rộng tối đa của thanh bar khi vẽ biểu đồ console. */
     private static final int MAX_BAR_WIDTH = 40;
 
+    /**
+     * Dưới ngưỡng chênh lệch này (%) thì coi hai phương pháp là như nhau.
+     * Đặt 10% vì các phép đo ở nhóm B chỉ vài chục ms, dao động giữa các lần
+     * chạy vốn đã cỡ vài phần trăm.
+     */
+    private static final double NEGLIGIBLE_PERCENT = 10;
+
     public static void run() {
         System.out.println("╔══════════════════════════════════════════════════════════════╗");
         System.out.println("║  ĐỀ TÀI 2: SO SÁNH BUFFERED vs UNBUFFERED STREAM            ║");
@@ -180,56 +187,80 @@ public class PerformanceChart {
             System.out.println();
         }
 
-        // --- Nhóm B: khi đã đọc theo khối thì cỡ buffer còn quan trọng không? ---
-        if (groupB.length >= 2) {
-            CopyResult fastest = groupB[0];
-            CopyResult slowest = groupB[0];
-            for (CopyResult r : groupB) {
-                if (r.ms() < fastest.ms()) {
-                    fastest = r;
-                }
-                if (r.ms() > slowest.ms()) {
-                    slowest = r;
-                }
+        // --- Nhóm B: tách thành 2 câu hỏi RIÊNG, vì chúng có độ tin cậy khác nhau ---
+        //
+        // Thứ tự phần tử do CopyBenchmark.runAll quy định:
+        //   [0] Unbuf chunk 8KB   [1] Buffered 8KB   [2..] các cỡ buffer lớn hơn
+        if (groupB.length >= 3) {
+            CopyResult unbufChunk = groupB[0];
+            CopyResult buffered8k = groupB[1];
+
+            // === Câu hỏi 1: bọc buffer lên code VỐN ĐÃ đọc theo khối thì được gì? ===
+            // Kết quả này lặp lại ổn định qua nhiều lần chạy nên kết luận được.
+            double diffPercent = Math.abs(buffered8k.ms() - unbufChunk.ms())
+                    / Math.max(unbufChunk.ms(), 0.001) * 100;
+
+            System.out.println("▸ Bọc BufferedStream lên code ĐÃ đọc theo khối 8KB:");
+            System.out.printf("  %-22s %8.2f ms%n", unbufChunk.methodName(), unbufChunk.ms());
+            System.out.printf("  %-22s %8.2f ms%n", buffered8k.methodName(), buffered8k.ms());
+
+            // Nhận xét bám theo con số thật, KHÔNG in cứng "không được gì":
+            // trên Windows hai giá trị này gần như bằng nhau, nhưng trên ext4
+            // đã quan sát thấy chênh tới 19% — nói "không được gì" là sai.
+            if (diffPercent < NEGLIGIBLE_PERCENT) {
+                System.out.printf("  → Chênh %.0f%% — gần như KHÔNG được gì.%n", diffPercent);
+                System.out.println("  Buffer chỉ cắt system call khi code đọc lắt nhắt từng byte.");
+                System.out.println("  Đã tự đọc khối 8KB rồi thì nó chỉ thêm một lần copy thừa.");
+            } else {
+                String faster = buffered8k.ms() < unbufChunk.ms()
+                        ? "CÓ buffer nhanh hơn" : "KHÔNG buffer nhanh hơn";
+                System.out.printf("  → Chênh %.0f%% (%s).%n", diffPercent, faster);
+                System.out.println("  Vẫn nhỏ hơn hẳn mức chênh của nhóm A, vì ở đây buffer không");
+                System.out.println("  còn cắt được system call nữa — code đã tự đọc theo khối rồi.");
             }
-
-            double spread = fastest.speedupOver(slowest);
-
-            System.out.println("▸ Khi đã đọc THEO KHỐI, chênh lệch giữa các cỡ buffer:");
-            System.out.printf("  Nhanh nhất: %-22s %.2f ms%n", fastest.methodName(), fastest.ms());
-            System.out.printf("  Chậm nhất : %-22s %.2f ms%n", slowest.methodName(), slowest.ms());
-            System.out.printf("  → Chênh %.1f lần, nhỏ hơn hẳn mức chênh của nhóm A.%n", spread);
             System.out.println();
 
-            // Kết luận bám theo số liệu thật, KHÔNG khẳng định cứng một chiều:
-            // mức lợi của buffer lớn phụ thuộc chi phí system call của từng OS.
-            // In đúng tên OS đang chạy, không đoán bừa là Windows hay Linux.
-            // CHỈ báo cáo ĐỘ LỚN của chênh lệch, KHÔNG khẳng định chiều hướng
-            // "buffer càng lớn càng nhanh": thứ tự xếp hạng ở nhóm này đảo qua
-            // đảo lại giữa các lần chạy, nên khẳng định chiều là không có căn cứ.
-            String os = System.getProperty("os.name", "không rõ");
-
-            if (spread >= 1.3) {
-                System.out.println("  Trên " + os + " (máy đang chạy), các cỡ khối vẫn còn");
-                System.out.println("  chênh nhau đáng kể → chi phí mỗi system call ở đây còn đủ lớn");
-                System.out.println("  để cỡ khối tạo ra khác biệt. Nhưng cỡ nào tối ưu thì phải ĐO,");
-                System.out.println("  vì thứ tự xếp hạng có thể đổi giữa các lần chạy.");
-            } else {
-                System.out.println("  Trên " + os + " (máy đang chạy), các cỡ khối gần như");
-                System.out.println("  KHÔNG khác nhau → nút thắt đã chuyển từ số system call sang");
-                System.out.println("  băng thông đĩa, nạp nhiều hơn mỗi lần cũng không nhanh thêm.");
+            // === Câu hỏi 2: tăng buffer lên TRÊN 8KB có lợi không? ===
+            CopyResult bestLarge = groupB[2];
+            for (int i = 3; i < groupB.length; i++) {
+                if (groupB[i].ms() < bestLarge.ms()) {
+                    bestLarge = groupB[i];
+                }
             }
-            System.out.println("  → Kết quả này PHỤ THUỘC hệ điều hành và filesystem: cùng đoạn code");
-            System.out.println("    chạy trên Linux/ext4 và Windows/NTFS có thể cho kết luận ngược nhau.");
+
+            double largeVs8k = bestLarge.speedupOver(buffered8k);
+
+            System.out.println("▸ Tăng cỡ buffer lên trên 8KB:");
+            System.out.printf("  Nhanh nhất trong các cỡ lớn: %-16s %8.2f ms%n",
+                    bestLarge.methodName(), bestLarge.ms());
+
+            // Hệ số < 1 nghĩa là CHẬM hơn. In "nhanh hơn 0.9 lần" là vô nghĩa,
+            // nên phải đổi cách diễn đạt theo dấu của kết quả.
+            if (largeVs8k >= 1) {
+                System.out.printf("  → Nhanh hơn Buffered 8KB %.1f lần.%n", largeVs8k);
+            } else {
+                System.out.printf("  → Lần chạy này KHÔNG nhanh hơn: chậm hơn Buffered 8KB %.1f lần.%n",
+                        1 / largeVs8k);
+                System.out.println("  Tức là ở máy này, tăng cỡ buffer quá 8KB không còn lợi.");
+            }
+            System.out.println();
+
+            // === Cảnh báo: phần KHÔNG kết luận được ===
+            // Các cỡ buffer lớn chỉ chênh nhau vài ms nên thứ tự giữa chúng đảo
+            // qua đảo lại giữa các lần chạy. Đã quan sát thấy trên cùng một máy
+            // Windows: 2 lần đầu 64KB nhanh nhất, lần thứ 3 lại là 32KB.
+            System.out.println("⚠️  KHÔNG kết luận được cỡ buffer nào TỐI ƯU từ một lần chạy:");
+            System.out.println("    các cỡ lớn chỉ chênh nhau vài ms nên thứ tự giữa 32KB và 64KB");
+            System.out.println("    đảo qua đảo lại giữa các lần chạy, ngay trên cùng một máy.");
+            System.out.println("    Muốn chọn cỡ tối ưu thì phải đo nhiều lần trên môi trường thật.");
             System.out.println();
         }
 
         System.out.println("▸ KHUYẾN NGHỊ SỬ DỤNG:");
-        System.out.println("  - Luôn bọc BufferedInputStream/BufferedOutputStream khi đọc/ghi lắt nhắt");
-        System.out.println("    (đây là trường hợp buffer cứu được nhiều nhất, xem nhóm A)");
-        System.out.println("  - Nếu đã tự đọc theo khối lớn thì lợi ích của buffer giảm mạnh, thậm chí");
-        System.out.println("    có thể chậm hơn vì thêm một lần copy bộ nhớ trung gian");
-        System.out.println("  - Muốn chọn cỡ buffer tối ưu thì phải ĐO trên chính môi trường chạy thật");
+        System.out.println("  - Đọc/ghi lắt nhắt từng byte → BẮT BUỘC bọc Buffered, lợi hơn 100 lần");
+        System.out.println("  - Đã tự đọc theo khối ≥ 8KB  → lợi ích của Buffered giảm mạnh");
+        System.out.println("  - Cần tối ưu thêm            → dùng khối lớn hơn 8KB, nhưng phải ĐO");
+        System.out.println("    để biết cỡ nào hợp với máy mình, đừng tin một con số cố định");
         System.out.println("  - Luôn dùng try-with-resources để stream tự đóng và tự flush()");
         System.out.println();
     }
