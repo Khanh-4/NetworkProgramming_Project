@@ -86,6 +86,12 @@ public class StreamComparison {
         System.out.println("💡 Lưu ý: số BYTE và số KÝ TỰ khác nhau trên cùng một file,");
         System.out.println("   vì ký tự tiếng Việt có dấu chiếm 2-3 byte khi encode UTF-8.");
         System.out.println();
+
+        // Phần GHI: đề bài yêu cầu demo cả ĐỌC lẫn GHI tệp .txt
+        System.out.println("━".repeat(62));
+        System.out.println("✍️  PHẦN DEMO: GHI TỆP .txt BẰNG HAI LOẠI LUỒNG");
+        System.out.println("━".repeat(62));
+        ReadWriteDemo.run();
     }
 
     /**

@@ -227,6 +227,14 @@ public class StreamComparisonGUI extends JFrame {
         );
         tabbedPane.addTab("Ly thuyet", new JScrollPane(txtTheory));
 
+        // Tab Demo đọc/ghi: phần Demo mà đề bài yêu cầu (đọc VÀ ghi tệp .txt)
+        JTextArea txtReadWrite = new JTextArea();
+        txtReadWrite.setEditable(false);
+        txtReadWrite.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        txtReadWrite.setText(ReadWriteDemo.buildReport());
+        txtReadWrite.setCaretPosition(0); // cuon ve dau, khong de o cuoi
+        tabbedPane.addTab("Demo doc/ghi", new JScrollPane(txtReadWrite));
+
         // Tab Bẫy encoding: chạy ngay khi mở GUI vì rất nhanh (file demo vài chục byte)
         JTextArea txtEncoding = new JTextArea();
         txtEncoding.setEditable(false);
