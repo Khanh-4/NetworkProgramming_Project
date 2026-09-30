@@ -1,29 +1,29 @@
 package com.project_final.networkprogramming_project.detai2_bufferedstream;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import com.project_final.networkprogramming_project.detai1_bytecharstream.TestFileUtils;
 import java.io.IOException;
 
 /**
- * Đề tài 2: Ứng dụng kỹ thuật luồng đệm (Buffered Stream)
- * ----------------------------------------------------------
- * Class chính: Chạy so sánh tốc độ sao chép file giữa:
- *   1. Không buffer (từng byte) → CHẬM NHẤT
- *   2. Không buffer (khối 8KB) → TRUNG BÌNH
- *   3. Có BufferedStream (8KB) → NHANH
- *   4. Có BufferedStream (64KB) → NHANH NHẤT
+ * Đề tài 2: Ứng dụng kỹ thuật luồng đệm (Buffered Stream) — bản console.
+ * =======================================================================
  *
- * Kết quả: In biểu đồ so sánh tốc độ I/O trên console.
+ * Đáp ứng đủ 3 phần đề bài yêu cầu:
+ *   - Lý thuyết : cơ chế buffer và chi phí system call ({@link #printTheory()})
+ *   - Demo      : hai chương trình sao chép tệp lớn có/không BufferedInputStream
+ *   - Kết quả   : so sánh thời gian xử lý + in biểu đồ tốc độ I/O
+ *
+ * Phép đo chia làm HAI NHÓM và KHÔNG so chéo giữa hai nhóm — xem
+ * {@link CopyBenchmark} để biết lý do.
  *
  * @author Cao Duy Quốc Khánh
  */
 public class PerformanceChart {
 
-    private static final String TEST_DIR = "testdata";
-    // Dùng file nhỏ hơn cho byte-by-byte (vì rất chậm)
-    private static final int SMALL_FILE_MB = 1;
-    // File lớn hơn cho các phương pháp nhanh
-    private static final int LARGE_FILE_MB = 10;
+    /** Thư mục lưu file test (đã có trong .gitignore). */
+    private static final String TEST_DIR = TestFileUtils.getTestDir();
+
+    /** Độ rộng tối đa của thanh bar khi vẽ biểu đồ console. */
+    private static final int MAX_BAR_WIDTH = 40;
 
     public static void run() {
         System.out.println("╔══════════════════════════════════════════════════════════════╗");
@@ -32,235 +32,170 @@ public class PerformanceChart {
         System.out.println("╚══════════════════════════════════════════════════════════════╝");
         System.out.println();
 
-        // ========== PHẦN 1: GIẢI THÍCH LÝ THUYẾT ==========
         printTheory();
 
-        // ========== PHẦN 2: TẠO FILE TEST ==========
-        File testDir = new File(TEST_DIR);
-        if (!testDir.exists()) {
-            testDir.mkdirs();
+        try {
+            System.out.println("━".repeat(62));
+            System.out.println("🔬 CHẠY BENCHMARK (warm-up + lấy trung vị)");
+            System.out.println("━".repeat(62));
+
+            CopyResult[] results = CopyBenchmark.runAll(TEST_DIR, System.out::println);
+
+            printResultTable(results);
+            printBarChart(results);
+            printConclusion(results);
+
+        } catch (IOException e) {
+            // Không nuốt lỗi: in rõ nguyên nhân để biết vì sao không có số liệu
+            System.err.println("❌ Không thể hoàn tất benchmark: " + e.getMessage());
+        } finally {
+            // finally: dọn file test dù thành công hay thất bại
+            TestFileUtils.cleanupTestFiles();
+            System.out.println("🗑️  Đã dọn dẹp file test.");
         }
-
-        String srcSmall = TEST_DIR + "/source_" + SMALL_FILE_MB + "MB.dat";
-        String srcLarge = TEST_DIR + "/source_" + LARGE_FILE_MB + "MB.dat";
-        generateBinaryFile(srcSmall, SMALL_FILE_MB);
-        generateBinaryFile(srcLarge, LARGE_FILE_MB);
-
-        // ========== PHẦN 3: CHẠY CÁC PHƯƠNG PHÁP SAO CHÉP ==========
-        System.out.println("━".repeat(60));
-        System.out.println("🔬 TEST 1: Sao chép file " + SMALL_FILE_MB + " MB - So sánh byte-by-byte");
-        System.out.println("━".repeat(60));
-
-        // 1. Không buffer, từng byte (CHẬM - chỉ dùng file nhỏ)
-        long time1 = UnbufferedCopy.copyByteByByte(
-                srcSmall, TEST_DIR + "/copy_unbuf_byte.dat");
-        System.out.println();
-
-        // 2. Có buffer, từng byte (cải thiện lớn)
-        long time2 = BufferedCopy.copyWithDefaultBuffer(
-                srcSmall, TEST_DIR + "/copy_buf_byte.dat");
-        System.out.println();
-
-        System.out.println("━".repeat(60));
-        System.out.println("🔬 TEST 2: Sao chép file " + LARGE_FILE_MB + " MB - So sánh buffer size");
-        System.out.println("━".repeat(60));
-
-        // 3. Không buffer, khối 8KB
-        long time3 = UnbufferedCopy.copyWithChunk(
-                srcLarge, TEST_DIR + "/copy_unbuf_chunk.dat", 8192);
-        System.out.println();
-
-        // 4. Buffered 8KB (mặc định)
-        long time4 = BufferedCopy.copyWithCustomBuffer(
-                srcLarge, TEST_DIR + "/copy_buf_8k.dat", 8192);
-        System.out.println();
-
-        // 5. Buffered 32KB
-        long time5 = BufferedCopy.copyWithCustomBuffer(
-                srcLarge, TEST_DIR + "/copy_buf_32k.dat", 32768);
-        System.out.println();
-
-        // 6. Buffered 64KB
-        long time6 = BufferedCopy.copyWithCustomBuffer(
-                srcLarge, TEST_DIR + "/copy_buf_64k.dat", 65536);
-        System.out.println();
-
-        // ========== PHẦN 4: IN KẾT QUẢ ==========
-        printResultTable(time1, time2, time3, time4, time5, time6);
-
-        // ========== PHẦN 5: VẼ BIỂU ĐỒ ==========
-        printBarChart(time1, time2, time3, time4, time5, time6);
-
-        // ========== PHẦN 6: KẾT LUẬN ==========
-        printConclusion(time1, time2);
-
-        // ========== DỌN DẸP ==========
-        cleanupTestFiles();
     }
 
     /**
-     * In phần lý thuyết về Buffered Stream.
+     * In phần lý thuyết về Buffered Stream và chi phí system call.
      */
     private static void printTheory() {
-        System.out.println("📖 LÝ THUYẾT:");
-        System.out.println("─".repeat(60));
+        System.out.println("📖 LÝ THUYẾT & CƠ CHẾ HOẠT ĐỘNG:");
+        System.out.println("─".repeat(62));
         System.out.println("▸ Vấn đề của Unbuffered Stream:");
         System.out.println("  - Mỗi read()/write() = 1 system call đến OS Kernel");
-        System.out.println("  - System call tốn ~1000 CPU cycles (User→Kernel mode)");
-        System.out.println("  - File 10MB đọc byte-by-byte = 10 TRIỆU system calls!");
+        System.out.println("  - Mỗi system call phải chuyển User Mode → Kernel Mode (tốn CPU)");
+        System.out.println("  - File 10MB đọc từng byte = hơn 10 TRIỆU system call!");
         System.out.println();
-        System.out.println("▸ Giải pháp: Buffered Stream");
-        System.out.println("  - Tạo vùng đệm (buffer) trong RAM, mặc định 8KB");
-        System.out.println("  - 1 system call đọc 8KB vào buffer");
-        System.out.println("  - Các lần read() tiếp lấy từ buffer (cực nhanh)");
-        System.out.println("  - File 10MB chỉ cần ~1,280 system calls (giảm 8000x)");
+        System.out.println("▸ Giải pháp: BufferedStream");
+        System.out.println("  - Tạo vùng đệm trong RAM, mặc định 8192 byte (8KB)");
+        System.out.println("  - 1 system call nạp nguyên 8KB vào buffer");
+        System.out.println("  - Các lần read() sau lấy từ buffer → không tốn system call");
+        System.out.println("  - File 10MB chỉ còn khoảng 1.280 system call (giảm 8192 lần)");
         System.out.println();
-        System.out.println("▸ Minh họa:");
-        System.out.println("  Không buffer: App ←→ Disk (mỗi byte)");
-        System.out.println("  Có buffer:    App ←→ Buffer(RAM) ←→ Disk (mỗi 8KB)");
+        System.out.println("▸ Sơ đồ so sánh:");
         System.out.println();
-    }
-
-    /**
-     * In bảng kết quả.
-     */
-    private static void printResultTable(long t1, long t2, long t3,
-                                          long t4, long t5, long t6) {
+        System.out.println("  KHÔNG buffer:");
+        System.out.println("    Ứng dụng ──read()──> [system call] ──> Kernel ──> Đĩa   (mỗi byte)");
         System.out.println();
-        System.out.println("╔══════════════════════════════════════════════════════════════════╗");
-        System.out.println("║                      BẢNG KẾT QUẢ SO SÁNH                      ║");
-        System.out.println("╠══════════════════════════════════════╦═══════════╦═══════════════╣");
-        System.out.println("║ Phương pháp                         ║ File Size ║ Thời gian     ║");
-        System.out.println("╠══════════════════════════════════════╬═══════════╬═══════════════╣");
-        System.out.printf("║ ① Unbuffered (byte-by-byte)          ║ %-7s   ║ %-11s   ║%n",
-                SMALL_FILE_MB + " MB", t1 + " ms");
-        System.out.printf("║ ② Buffered 8KB (byte-by-byte)        ║ %-7s   ║ %-11s   ║%n",
-                SMALL_FILE_MB + " MB", t2 + " ms");
-        System.out.printf("║ ③ Unbuffered (chunk 8KB)             ║ %-7s   ║ %-11s   ║%n",
-                LARGE_FILE_MB + " MB", t3 + " ms");
-        System.out.printf("║ ④ Buffered 8KB (chunk 8KB)           ║ %-7s   ║ %-11s   ║%n",
-                LARGE_FILE_MB + " MB", t4 + " ms");
-        System.out.printf("║ ⑤ Buffered 32KB (chunk 32KB)         ║ %-7s   ║ %-11s   ║%n",
-                LARGE_FILE_MB + " MB", t5 + " ms");
-        System.out.printf("║ ⑥ Buffered 64KB (chunk 64KB)         ║ %-7s   ║ %-11s   ║%n",
-                LARGE_FILE_MB + " MB", t6 + " ms");
-        System.out.println("╚══════════════════════════════════════╩═══════════╩═══════════════╝");
-    }
-
-    /**
-     * Vẽ biểu đồ bar chart so sánh tốc độ I/O.
-     */
-    private static void printBarChart(long t1, long t2, long t3,
-                                       long t4, long t5, long t6) {
-        System.out.println();
-        System.out.println("📊 BIỂU ĐỒ SO SÁNH TỐC ĐỘ I/O:");
-        System.out.println("─".repeat(65));
-
-        // --- Nhóm 1: File nhỏ, byte-by-byte ---
-        System.out.println("  🔸 File " + SMALL_FILE_MB + " MB (byte-by-byte):");
-        long maxSmall = Math.max(t1, t2);
-        if (maxSmall == 0) maxSmall = 1;
-
-        printBar("Unbuffered", t1, maxSmall, "█");
-        printBar("Buffered  ", t2, maxSmall, "▓");
-        if (t2 > 0) {
-            System.out.printf("  → Buffered nhanh hơn %.1fx%n", (double) t1 / t2);
-        }
-        System.out.println();
-
-        // --- Nhóm 2: File lớn, các buffer size ---
-        System.out.println("  🔸 File " + LARGE_FILE_MB + " MB (so sánh buffer size):");
-        long maxLarge = Math.max(t3, Math.max(t4, Math.max(t5, t6)));
-        if (maxLarge == 0) maxLarge = 1;
-
-        printBar("No buf 8KB ", t3, maxLarge, "█");
-        printBar("Buf 8KB    ", t4, maxLarge, "▓");
-        printBar("Buf 32KB   ", t5, maxLarge, "▒");
-        printBar("Buf 64KB   ", t6, maxLarge, "░");
-        System.out.println();
-
-        System.out.println("  Chú thích: █ Unbuffered | ▓ Buf 8K | ▒ Buf 32K | ░ Buf 64K");
-    }
-
-    /**
-     * Vẽ 1 thanh bar.
-     */
-    private static void printBar(String label, long value, long maxValue, String symbol) {
-        int maxWidth = 35;
-        int barLen = (int) (value * maxWidth / maxValue);
-        barLen = Math.max(barLen, 1);
-        System.out.printf("    %s ║%s║ %d ms%n", label, symbol.repeat(barLen), value);
-    }
-
-    /**
-     * In kết luận.
-     */
-    private static void printConclusion(long unbufferedTime, long bufferedTime) {
-        System.out.println();
-        System.out.println("📝 KẾT LUẬN:");
-        System.out.println("─".repeat(60));
-        System.out.println("▸ BufferedStream NHANH hơn Unbuffered rất nhiều lần.");
-        System.out.println("  → Đặc biệt rõ khi đọc/ghi TỪNG BYTE (byte-by-byte)");
-        if (bufferedTime > 0) {
-            System.out.printf("  → Tốc độ cải thiện: ~%.0fx lần%n",
-                    (double) unbufferedTime / bufferedTime);
-        }
-        System.out.println();
-        System.out.println("▸ Tăng buffer size giúp cải thiện thêm, nhưng có giới hạn:");
-        System.out.println("  - 8KB  → tốt cho đa số trường hợp (mặc định Java)");
-        System.out.println("  - 32KB → tối ưu hơn cho file lớn");
-        System.out.println("  - 64KB+ → cải thiện không đáng kể, tốn RAM");
-        System.out.println();
-        System.out.println("▸ BẪY THƯỜNG GẶP:");
-        System.out.println("  ❌ Quên flush() với BufferedOutputStream → mất dữ liệu cuối");
-        System.out.println("  ❌ Quên đóng stream → resource leak, file bị lock");
-        System.out.println("  ✅ Luôn dùng try-with-resources để tự động đóng stream");
+        System.out.println("  CÓ buffer:");
+        System.out.println("    Ứng dụng ──read()──> Buffer (RAM)                       (mỗi byte)");
+        System.out.println("                            ↑");
+        System.out.println("                    [system call] ──> Kernel ──> Đĩa        (mỗi 8KB)");
         System.out.println();
     }
 
     /**
-     * Tạo file nhị phân cho test.
+     * In bảng kết quả, tách rõ 2 nhóm.
      */
-    private static void generateBinaryFile(String filePath, int sizeInMB) {
-        File file = new File(filePath);
-        if (file.exists()) {
-            System.out.println("📁 File test đã tồn tại: " + filePath);
-            return;
+    private static void printResultTable(CopyResult[] results) {
+        System.out.println();
+        System.out.println("╔═══════╦════════════════════════╦════════╦═════════════╦═════════════╗");
+        System.out.println("║ Nhóm  ║      Phương pháp       ║  File  ║ Thời gian   ║ Thông lượng ║");
+        System.out.println("╠═══════╬════════════════════════╬════════╬═════════════╬═════════════╣");
+
+        for (CopyResult r : results) {
+            String group = r.fileSizeMB() == CopyBenchmark.SMALL_FILE_MB ? "A" : "B";
+            System.out.printf("║   %s   ║ %-22s ║ %-6s ║ %8.2f ms ║ %7.0f MB/s ║%n",
+                    group, r.methodName(), r.fileSizeMB() + " MB",
+                    r.ms(), r.throughputMBps());
         }
 
-        System.out.println("📁 Đang tạo file test: " + filePath + " (" + sizeInMB + " MB)...");
-        try (FileOutputStream fos = new FileOutputStream(filePath)) {
-            byte[] chunk = new byte[1024 * 1024]; // 1MB
-            for (int i = 0; i < chunk.length; i++) {
-                chunk[i] = (byte) (i % 256);
-            }
-            for (int i = 0; i < sizeInMB; i++) {
-                fos.write(chunk);
-            }
-            fos.flush();
-        } catch (IOException e) {
-            System.err.println("❌ Lỗi tạo file: " + e.getMessage());
-        }
-        System.out.println("✅ File test đã tạo!\n");
+        System.out.println("╚═══════╩════════════════════════╩════════╩═════════════╩═════════════╝");
+        System.out.println("⚠️  CHỈ so sánh các dòng TRONG CÙNG một nhóm: nhóm A chạy trên file "
+                + CopyBenchmark.SMALL_FILE_MB + " MB,");
+        System.out.println("    nhóm B chạy trên file " + CopyBenchmark.LARGE_FILE_MB
+                + " MB nên số liệu 2 nhóm không so trực tiếp được.");
+        System.out.println();
     }
 
     /**
-     * Dọn dẹp file test.
+     * Vẽ biểu đồ tốc độ I/O trên console, mỗi nhóm một thang đo riêng.
      */
-    private static void cleanupTestFiles() {
-        System.out.println("🗑️  Dọn dẹp file test...");
-        File testDir = new File(TEST_DIR);
-        if (testDir.exists()) {
-            File[] files = testDir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.delete()) {
-                        System.out.println("   Đã xóa: " + file.getName());
-                    }
+    private static void printBarChart(CopyResult[] results) {
+        System.out.println("📊 BIỂU ĐỒ TỐC ĐỘ I/O (càng ngắn càng nhanh):");
+        System.out.println("─".repeat(62));
+
+        printChartGroup("NHÓM A — đọc/ghi từng byte (file "
+                        + CopyBenchmark.SMALL_FILE_MB + " MB)",
+                CopyBenchmark.filterBySize(results, CopyBenchmark.SMALL_FILE_MB), '█');
+
+        printChartGroup("NHÓM B — đọc theo khối (file "
+                        + CopyBenchmark.LARGE_FILE_MB + " MB)",
+                CopyBenchmark.filterBySize(results, CopyBenchmark.LARGE_FILE_MB), '▓');
+
+        System.out.println();
+    }
+
+    /**
+     * Vẽ một nhóm với thang đo riêng.
+     *
+     * Thang riêng từng nhóm là bắt buộc: nếu dùng chung thang, cột 3000 ms của
+     * nhóm A sẽ nén toàn bộ nhóm B (7-26 ms) thành những vạch không nhìn ra gì.
+     */
+    private static void printChartGroup(String title, CopyResult[] group, char blockChar) {
+        System.out.println();
+        System.out.println("  " + title);
+
+        double maxMs = 1;
+        for (CopyResult r : group) {
+            maxMs = Math.max(maxMs, r.ms());
+        }
+
+        for (CopyResult r : group) {
+            int barLen = (int) (r.ms() * MAX_BAR_WIDTH / maxMs);
+            barLen = Math.max(barLen, 1); // luôn thấy được thanh
+            System.out.printf("    %-22s │%-40s│ %9.2f ms%n",
+                    r.methodName(), String.valueOf(blockChar).repeat(barLen), r.ms());
+        }
+    }
+
+    /**
+     * In kết luận dựa trên số liệu đo được.
+     */
+    private static void printConclusion(CopyResult[] results) {
+        System.out.println("📝 KẾT LUẬN (dựa trên số liệu vừa đo):");
+        System.out.println("─".repeat(62));
+
+        CopyResult[] groupA = CopyBenchmark.filterBySize(results, CopyBenchmark.SMALL_FILE_MB);
+        CopyResult[] groupB = CopyBenchmark.filterBySize(results, CopyBenchmark.LARGE_FILE_MB);
+
+        // --- Nhóm A: buffer cứu được code đọc lắt nhắt bao nhiêu? ---
+        if (groupA.length >= 2) {
+            CopyResult unbuffered = groupA[0];
+            CopyResult buffered = groupA[1];
+            System.out.printf("▸ Khi đọc/ghi TỪNG BYTE: BufferedStream nhanh hơn %.1f lần%n",
+                    buffered.speedupOver(unbuffered));
+            System.out.println("  → Đây là giá trị thật sự của buffer: cắt bỏ hàng triệu system call.");
+            System.out.println();
+        }
+
+        // --- Nhóm B: khi đã đọc theo khối thì cỡ buffer còn quan trọng không? ---
+        if (groupB.length >= 2) {
+            CopyResult fastest = groupB[0];
+            CopyResult slowest = groupB[0];
+            for (CopyResult r : groupB) {
+                if (r.ms() < fastest.ms()) {
+                    fastest = r;
+                }
+                if (r.ms() > slowest.ms()) {
+                    slowest = r;
                 }
             }
-            testDir.delete();
+
+            System.out.println("▸ Khi đã đọc THEO KHỐI, chênh lệch giữa các cỡ buffer:");
+            System.out.printf("  Nhanh nhất: %-22s %.2f ms%n", fastest.methodName(), fastest.ms());
+            System.out.printf("  Chậm nhất : %-22s %.2f ms%n", slowest.methodName(), slowest.ms());
+            System.out.printf("  → Chênh %.1f lần — nhỏ hơn hẳn so với nhóm A.%n",
+                    fastest.speedupOver(slowest));
+            System.out.println("  Lý do: khi buffer đã đủ lớn, nút thắt chuyển từ số system call");
+            System.out.println("  sang băng thông của đĩa, nên tăng buffer thêm không lợi bao nhiêu.");
+            System.out.println();
         }
-        System.out.println("✅ Dọn dẹp xong!");
+
+        System.out.println("▸ KHUYẾN NGHỊ SỬ DỤNG:");
+        System.out.println("  - Luôn bọc BufferedInputStream/BufferedOutputStream khi đọc/ghi lắt nhắt");
+        System.out.println("  - Nếu đã tự đọc theo khối ≥ 8KB thì buffer không còn quan trọng");
+        System.out.println("  - Luôn dùng try-with-resources để stream tự đóng và tự flush()");
+        System.out.println();
     }
 }

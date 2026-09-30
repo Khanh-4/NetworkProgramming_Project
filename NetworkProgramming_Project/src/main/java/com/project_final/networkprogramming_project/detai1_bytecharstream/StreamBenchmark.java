@@ -6,7 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.function.Consumer;
 
 /**
  * Đề tài 1: Engine đo tốc độ đọc file — dùng chung cho cả console và GUI.
@@ -29,23 +29,14 @@ import java.util.Arrays;
  *     Vòng lặp đọc file lần đầu chạy ở chế độ thông dịch (interpreted).
  *     Sau vài nghìn lần lặp, JIT mới biên dịch sang mã máy → nhanh hơn nhiều.
  *
- * CÁCH XỬ LÝ trong class này:
- *   - Chạy {@value #WARMUP_RUNS} lần WARM-UP và BỎ kết quả
- *     → nạp file vào page cache + để JIT biên dịch xong.
- *   - Sau đó đo {@value #MEASURED_RUNS} lần và lấy TRUNG VỊ (median), không lấy
- *     trung bình, vì median không bị một lần đo lỗi (do OS đi làm việc khác)
- *     kéo lệch toàn bộ kết quả.
- *   → Nhờ vậy cả ByteStream và CharStream đều được đo trong CÙNG điều kiện cache.
+ * CÁCH XỬ LÝ: toàn bộ việc warm-up và lấy trung vị giao cho {@link MedianTimer},
+ * nên đề tài 1 và đề tài 2 dùng CHUNG một phương pháp đo, số liệu so sánh được
+ * với nhau. Nhờ vậy cả ByteStream lẫn CharStream đều được đo trong CÙNG điều
+ * kiện page cache, thay vì cái đo trước chịu cache lạnh còn cái đo sau ăn sẵn.
  *
  * @author Cao Duy Quốc Khánh
  */
 public final class StreamBenchmark {
-
-    /** Số lần chạy nháp để nạp page cache + kích hoạt JIT (kết quả bị bỏ). */
-    private static final int WARMUP_RUNS = 2;
-
-    /** Số lần đo thật, lấy trung vị. Số lẻ để median rơi đúng 1 phần tử. */
-    private static final int MEASURED_RUNS = 3;
 
     /** Buffer đọc của ByteStream: 8 KB, khớp block size phổ biến của đĩa. */
     private static final int BYTE_BUFFER_SIZE = 8192;
@@ -54,20 +45,10 @@ public final class StreamBenchmark {
     private static final int CHAR_BUFFER_SIZE = 4096;
 
     /** Ký tự U+FFFD mà decoder chèn vào khi gặp byte không decode được. */
-    private static final char REPLACEMENT_CHAR = '�';
+    private static final char REPLACEMENT_CHAR = '\uFFFD';
 
     /** Class tiện ích, không cho tạo instance. */
     private StreamBenchmark() {
-    }
-
-    /** Nhận thông báo tiến độ để console in ra, hoặc GUI đẩy vào log. */
-    public interface ProgressListener {
-        void onProgress(String message);
-    }
-
-    /** Một tác vụ đọc file có thể ném IOException — dùng cho hàm đo thời gian. */
-    private interface ReadTask {
-        void execute() throws IOException;
     }
 
     /**
@@ -85,29 +66,28 @@ public final class StreamBenchmark {
     public static BenchmarkResult measure(int sizeMB,
                                           String textFile,
                                           String binaryFile,
-                                          ProgressListener listener)
+                                          Consumer<String> listener)
             throws IOException {
 
         Charset utf8 = StandardCharsets.UTF_8;
 
-        report(listener, "  [" + sizeMB + "MB] warm-up " + WARMUP_RUNS
-                + " lan + do " + MEASURED_RUNS + " lan, lay trung vi...");
+        report(listener, "  [" + sizeMB + "MB] warm-up + do nhieu lan, lay trung vi...");
 
         // --- File TEXT ---
-        long byteOnText = medianNanos(() -> readWithByteStream(textFile));
+        long byteOnText = MedianTimer.medianNanos(() -> readWithByteStream(textFile));
         report(listener, "  [" + sizeMB + "MB] TEXT   | ByteStream: "
                 + format(byteOnText));
 
-        long charOnText = medianNanos(() -> readWithCharStream(textFile, utf8));
+        long charOnText = MedianTimer.medianNanos(() -> readWithCharStream(textFile, utf8));
         report(listener, "  [" + sizeMB + "MB] TEXT   | CharStream: "
                 + format(charOnText));
 
         // --- File NHỊ PHÂN ---
-        long byteOnBinary = medianNanos(() -> readWithByteStream(binaryFile));
+        long byteOnBinary = MedianTimer.medianNanos(() -> readWithByteStream(binaryFile));
         report(listener, "  [" + sizeMB + "MB] BINARY | ByteStream: "
                 + format(byteOnBinary));
 
-        long charOnBinary = medianNanos(() -> readWithCharStream(binaryFile, utf8));
+        long charOnBinary = MedianTimer.medianNanos(() -> readWithCharStream(binaryFile, utf8));
         report(listener, "  [" + sizeMB + "MB] BINARY | CharStream: "
                 + format(charOnBinary));
 
@@ -118,35 +98,6 @@ public final class StreamBenchmark {
 
         return new BenchmarkResult(sizeMB, byteOnText, charOnText,
                 byteOnBinary, charOnBinary, corruption[0], corruption[1]);
-    }
-
-    /**
-     * Chạy warm-up rồi đo nhiều lần, trả về TRUNG VỊ thời gian (nanosecond).
-     */
-    private static long medianNanos(ReadTask task) throws IOException {
-        // Warm-up: nạp file vào page cache + để JIT biên dịch vòng lặp đọc.
-        for (int i = 0; i < WARMUP_RUNS; i++) {
-            task.execute();
-        }
-
-        long[] samples = new long[MEASURED_RUNS];
-        for (int i = 0; i < MEASURED_RUNS; i++) {
-            samples[i] = timeOnce(task);
-        }
-
-        // clone() trước khi sort: KHÔNG sửa mảng gốc (nguyên tắc immutability)
-        long[] sorted = samples.clone();
-        Arrays.sort(sorted);
-        return sorted[sorted.length / 2];
-    }
-
-    /** Đo một lần thực thi, trả về nanosecond. */
-    private static long timeOnce(ReadTask task) throws IOException {
-        // nanoTime() là đồng hồ đơn điệu, dùng để đo khoảng thời gian.
-        // KHÔNG dùng currentTimeMillis() vì nó có thể bị NTP chỉnh giật lùi.
-        long start = System.nanoTime();
-        task.execute();
-        return System.nanoTime() - start;
     }
 
     /**
@@ -219,9 +170,9 @@ public final class StreamBenchmark {
     }
 
     /** Gửi log tiến độ nếu có listener. */
-    private static void report(ProgressListener listener, String message) {
+    private static void report(Consumer<String> listener, String message) {
         if (listener != null) {
-            listener.onProgress(message);
+            listener.accept(message);
         }
     }
 }

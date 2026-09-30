@@ -20,8 +20,9 @@ import java.io.*;
 public class PerformanceChartGUI extends JFrame {
 
     private static final String TEST_DIR = "testdata";
-    private static final int SMALL_FILE_MB = 1;  // File nhỏ cho byte-by-byte
-    private static final int LARGE_FILE_MB = 10;  // File lớn cho so sánh buffer
+    // Lấy từ CopyBenchmark để chỉ có MỘT nơi định nghĩa kích thước file test
+    private static final int SMALL_FILE_MB = CopyBenchmark.SMALL_FILE_MB;
+    private static final int LARGE_FILE_MB = CopyBenchmark.LARGE_FILE_MB;
 
     // Components
     private JTable resultTable;
@@ -32,9 +33,8 @@ public class PerformanceChartGUI extends JFrame {
     private JLabel lblStatus;
     private JProgressBar progressBar;
 
-    // Kết quả
-    private String[] methodNames;
-    private long[] times;
+    /** Kết quả benchmark, immutable, mỗi phần tử là một phương pháp sao chép. */
+    private CopyResult[] results;
 
     public PerformanceChartGUI() {
         setTitle("De Tai 2: Buffered Stream vs Unbuffered Stream - Cao Duy Quoc Khanh");
@@ -126,7 +126,7 @@ public class PerformanceChartGUI extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Bang ket qua so sanh"));
 
-        String[] columns = {"Phuong phap", "File Size", "Thoi gian (ms)", "Toc do"};
+        String[] columns = {"Nhom", "Phuong phap", "File", "Thoi gian (ms)", "Thong luong"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -197,82 +197,29 @@ public class PerformanceChartGUI extends JFrame {
     }
 
     /**
-     * Chạy benchmark trên background thread.
+     * Chạy benchmark trên background thread để không đóng băng giao diện.
      */
     private void runBenchmark() {
         btnRun.setEnabled(false);
         lblStatus.setText("Dang chay...");
         progressBar.setValue(0);
+        progressBar.setIndeterminate(true); // khong biet truoc bao lau vi co warm-up
         tableModel.setRowCount(0);
         txtLog.setText("");
 
         SwingWorker<Void, String> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws IOException {
-                methodNames = new String[6];
-                times = new long[6];
+                publish("Bat dau benchmark (co warm-up + lay trung vi)...");
+                publish("Luu y: moi phuong phap chay nhieu lan nen se lau hon truoc.\n");
 
-                File dir = new File(TEST_DIR);
-                if (!dir.exists()) dir.mkdirs();
+                // Toan bo phep do giao cho CopyBenchmark, GUI chi hien thi
+                results = CopyBenchmark.runAll(TEST_DIR, this::publish);
 
-                String srcSmall = TEST_DIR + "/source_" + SMALL_FILE_MB + "MB.dat";
-                String srcLarge = TEST_DIR + "/source_" + LARGE_FILE_MB + "MB.dat";
-
-                // Tạo file test
-                publish("Tao file test " + SMALL_FILE_MB + "MB...");
-                com.project_final.networkprogramming_project.detai1_bytecharstream.TestFileUtils.generateBinaryFile(srcSmall, SMALL_FILE_MB);
-                publish("Tao file test " + LARGE_FILE_MB + "MB...");
-                com.project_final.networkprogramming_project.detai1_bytecharstream.TestFileUtils.generateBinaryFile(srcLarge, LARGE_FILE_MB);
-                setProgress(10);
-
-                // ① Unbuffered byte-by-byte (file nhỏ)
-                publish("\n[1/6] Unbuffered byte-by-byte (" + SMALL_FILE_MB + "MB)...");
-                methodNames[0] = "Unbuf byte-by-byte";
-                times[0] = copyUnbufferedByteByByte(srcSmall, TEST_DIR + "/c1.dat");
-                publish("=> " + times[0] + " ms");
-                setProgress(25);
-
-                // ② Buffered byte-by-byte (file nhỏ)
-                publish("[2/6] Buffered byte-by-byte (" + SMALL_FILE_MB + "MB)...");
-                methodNames[1] = "Buffered byte-by-byte";
-                times[1] = copyBufferedByteByByte(srcSmall, TEST_DIR + "/c2.dat");
-                publish("=> " + times[1] + " ms");
-                setProgress(40);
-
-                // ③ Unbuffered chunk 8KB (file lớn)
-                publish("[3/6] Unbuffered chunk 8KB (" + LARGE_FILE_MB + "MB)...");
-                methodNames[2] = "Unbuf chunk 8KB";
-                times[2] = copyUnbufferedChunk(srcLarge, TEST_DIR + "/c3.dat", 8192);
-                publish("=> " + times[2] + " ms");
-                setProgress(55);
-
-                // ④ Buffered 8KB (file lớn)
-                publish("[4/6] Buffered 8KB (" + LARGE_FILE_MB + "MB)...");
-                methodNames[3] = "Buffered 8KB";
-                times[3] = copyBufferedChunk(srcLarge, TEST_DIR + "/c4.dat", 8192);
-                publish("=> " + times[3] + " ms");
-                setProgress(70);
-
-                // ⑤ Buffered 32KB (file lớn)
-                publish("[5/6] Buffered 32KB (" + LARGE_FILE_MB + "MB)...");
-                methodNames[4] = "Buffered 32KB";
-                times[4] = copyBufferedChunk(srcLarge, TEST_DIR + "/c5.dat", 32768);
-                publish("=> " + times[4] + " ms");
-                setProgress(85);
-
-                // ⑥ Buffered 64KB (file lớn)
-                publish("[6/6] Buffered 64KB (" + LARGE_FILE_MB + "MB)...");
-                methodNames[5] = "Buffered 64KB";
-                times[5] = copyBufferedChunk(srcLarge, TEST_DIR + "/c6.dat", 65536);
-                publish("=> " + times[5] + " ms");
-                setProgress(95);
-
-                // Dọn dẹp
                 publish("\nDon dep file test...");
-                com.project_final.networkprogramming_project.detai1_bytecharstream.TestFileUtils.cleanupTestFiles();
+                com.project_final.networkprogramming_project.detai1_bytecharstream
+                        .TestFileUtils.cleanupTestFiles();
                 publish("Hoan tat!");
-                setProgress(100);
-
                 return null;
             }
 
@@ -282,11 +229,12 @@ public class PerformanceChartGUI extends JFrame {
                     txtLog.append(msg + "\n");
                     txtLog.setCaretPosition(txtLog.getDocument().getLength());
                 }
-                progressBar.setValue(getProgress());
             }
 
             @Override
             protected void done() {
+                progressBar.setIndeterminate(false);
+
                 // get() nem lai exception da xay ra trong doInBackground().
                 // Bo buoc nay thi loi tao/doc file se bi im lang, GUI hien bang rong.
                 try {
@@ -302,52 +250,91 @@ public class PerformanceChartGUI extends JFrame {
                     return;
                 }
 
+                fillResultTable();
+                updateChart();
+
                 progressBar.setValue(100);
-
-                // Tìm thời gian nhanh nhất (bỏ qua 2 test đầu vì file khác kích thước)
-                String[] fileSizes = {
-                    SMALL_FILE_MB + " MB", SMALL_FILE_MB + " MB",
-                    LARGE_FILE_MB + " MB", LARGE_FILE_MB + " MB",
-                    LARGE_FILE_MB + " MB", LARGE_FILE_MB + " MB"
-                };
-
-                for (int i = 0; i < 6; i++) {
-                    String speed;
-                    if (i == 0 && times[1] > 0) {
-                        speed = String.format("1x (co so)");
-                    } else if (i == 1 && times[0] > 0) {
-                        speed = String.format("%.1fx", (double) times[0] / Math.max(times[1], 1));
-                    } else if (i >= 2) {
-                        speed = String.format("%.1f MB/s",
-                            (double) LARGE_FILE_MB * 1000 / Math.max(times[i], 1));
-                    } else {
-                        speed = "-";
-                    }
-
-                    tableModel.addRow(new Object[]{
-                        methodNames[i], fileSizes[i], times[i], speed
-                    });
-                }
-
-                // Tô màu hàng nhanh nhất trong nhóm file lớn
-                chartPanel.setData(methodNames, times);
-                chartPanel.repaint();
-
                 btnRun.setEnabled(true);
                 lblStatus.setText("Benchmark hoan tat!");
             }
         };
 
-        worker.addPropertyChangeListener(evt -> {
-            if ("progress".equals(evt.getPropertyName())) {
-                progressBar.setValue((Integer) evt.getNewValue());
-            }
-        });
-
         worker.execute();
     }
 
-    /** Báo lỗi ra log + status bar và mở lại nút chạy. */
+    /**
+     * Đổ kết quả vào bảng.
+     *
+     * Cột "Thong luong" chỉ có nghĩa khi so sánh TRONG CÙNG một nhóm, vì hai
+     * nhóm chạy trên hai kích thước file khác nhau. Cột "Nhom" có để người đọc
+     * thấy ngay ranh giới đó thay vì so nhầm dòng 1 với dòng 6.
+     */
+    private void fillResultTable() {
+        if (results == null) {
+            return;
+        }
+
+        CopyResult slowestSmall = results[0]; // Unbuf byte-by-byte, moc so sanh nhom A
+
+        for (CopyResult r : results) {
+            boolean isGroupA = r.fileSizeMB() == SMALL_FILE_MB;
+
+            // Nhom A quan tam "nhanh hon bao nhieu lan", nhom B quan tam thong luong
+            String metric = isGroupA
+                    ? String.format("%.1fx", r.speedupOver(slowestSmall))
+                    : String.format("%.0f MB/s", r.throughputMBps());
+
+            tableModel.addRow(new Object[]{
+                isGroupA ? "A" : "B",
+                r.methodName(),
+                r.fileSizeMB() + " MB",
+                String.format("%.2f", r.ms()),
+                metric
+            });
+        }
+    }
+
+    /**
+     * Vẽ biểu đồ theo 2 nhóm tách biệt, mỗi nhóm một thang đo riêng.
+     */
+    private void updateChart() {
+        if (results == null) {
+            return;
+        }
+
+        CopyResult[] groupA = CopyBenchmark.filterBySize(results, SMALL_FILE_MB);
+        CopyResult[] groupB = CopyBenchmark.filterBySize(results, LARGE_FILE_MB);
+
+        String[] groupTitles = {
+            "Nhom A - doc/ghi tung byte (file " + SMALL_FILE_MB + " MB)",
+            "Nhom B - doc theo khoi (file " + LARGE_FILE_MB + " MB)"
+        };
+        String[][] barLabels = {toLabels(groupA), toLabels(groupB)};
+        double[][] values = {toMillis(groupA), toMillis(groupB)};
+
+        chartPanel.setData(groupTitles, barLabels, values);
+        chartPanel.repaint();
+    }
+
+    /** Trích tên phương pháp để làm nhãn biểu đồ. */
+    private static String[] toLabels(CopyResult[] group) {
+        String[] labels = new String[group.length];
+        for (int i = 0; i < group.length; i++) {
+            labels[i] = group[i].methodName();
+        }
+        return labels;
+    }
+
+    /** Trích thời gian (ms) để vẽ biểu đồ. */
+    private static double[] toMillis(CopyResult[] group) {
+        double[] millis = new double[group.length];
+        for (int i = 0; i < group.length; i++) {
+            millis[i] = group[i].ms();
+        }
+        return millis;
+    }
+
+
     private void reportFailure(String message) {
         txtLog.append("[LOI] " + message + "\n");
         lblStatus.setText(message);
@@ -355,53 +342,9 @@ public class PerformanceChartGUI extends JFrame {
         btnRun.setEnabled(true);
     }
 
-    // ===== CÁC PHƯƠNG PHÁP SAO CHÉP =====
-
-    private long copyUnbufferedByteByByte(String src, String dest) {
-        long start = System.nanoTime();
-        try (FileInputStream fis = new FileInputStream(src);
-             FileOutputStream fos = new FileOutputStream(dest)) {
-            int b;
-            while ((b = fis.read()) != -1) fos.write(b);
-            fos.flush();
-        } catch (IOException e) { return -1; }
-        return (System.nanoTime() - start) / 1_000_000;
-    }
-
-    private long copyBufferedByteByByte(String src, String dest) {
-        long start = System.nanoTime();
-        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(src));
-             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(dest))) {
-            int b;
-            while ((b = bis.read()) != -1) bos.write(b);
-            bos.flush();
-        } catch (IOException e) { return -1; }
-        return (System.nanoTime() - start) / 1_000_000;
-    }
-
-    private long copyUnbufferedChunk(String src, String dest, int chunkSize) {
-        long start = System.nanoTime();
-        try (FileInputStream fis = new FileInputStream(src);
-             FileOutputStream fos = new FileOutputStream(dest)) {
-            byte[] buf = new byte[chunkSize];
-            int n;
-            while ((n = fis.read(buf)) != -1) fos.write(buf, 0, n);
-            fos.flush();
-        } catch (IOException e) { return -1; }
-        return (System.nanoTime() - start) / 1_000_000;
-    }
-
-    private long copyBufferedChunk(String src, String dest, int bufSize) {
-        long start = System.nanoTime();
-        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(src), bufSize);
-             BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(dest), bufSize)) {
-            byte[] buf = new byte[bufSize];
-            int n;
-            while ((n = bis.read(buf)) != -1) bos.write(buf, 0, n);
-            bos.flush();
-        } catch (IOException e) { return -1; }
-        return (System.nanoTime() - start) / 1_000_000;
-    }
+    // Bốn method sao chép trước đây nằm ở đây đã bị xoá: chúng lặp lại y nguyên
+    // logic của UnbufferedCopy và BufferedCopy, lại còn tự đo thời gian 1 lần
+    // bằng long millisecond. Nay mọi phép đo đi qua CopyBenchmark + MedianTimer.
 
     /**
      * Khởi chạy GUI.
