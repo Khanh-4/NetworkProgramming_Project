@@ -20,9 +20,10 @@ import java.util.concurrent.ExecutionException;
  */
 public class StreamComparisonGUI extends JFrame {
 
-    // Các kích thước file test (MB)
-    private static final int[] TEST_SIZES_MB = {1, 5, 10, 20};
-    private static final String TEST_DIR = "testdata";
+    // Các kích thước file test (MB) — định nghĩa tập trung ở StreamBenchmark
+    // để console và GUI không bao giờ chạy trên hai dãy khác nhau.
+    private static final int[] TEST_SIZES_MB = StreamBenchmark.defaultSizesMB();
+    private static final String TEST_DIR = TestFileUtils.getTestDir();
 
     // Components
     private JTable resultTable;
@@ -65,15 +66,29 @@ public class StreamComparisonGUI extends JFrame {
         JPanel headerPanel = createHeaderPanel();
         mainPanel.add(headerPanel, BorderLayout.NORTH);
 
-        // ========== CENTER: Table + Chart ==========
+        // ========== CENTER ==========
+        // Bố cục: cột TRÁI = bảng kết quả ở trên + các tab log/lý thuyết ở dưới,
+        //         cột PHẢI = biểu đồ chiếm TRỌN chiều cao.
+        //
+        // Bản trước đặt các tab ở BorderLayout.SOUTH nên bảng 4 dòng bị kéo cao
+        // gần hết màn hình, để lại một mảng trắng lớn phía dưới, còn biểu đồ thì
+        // chỉ được nửa chiều cao. Đưa các tab lên lấp chỗ trống đó vừa hết khoảng
+        // trắng, vừa cho biểu đồ cao gấp đôi — quan trọng khi chiếu máy chiếu.
         JSplitPane centerSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        centerSplit.setResizeWeight(0.45);
+        centerSplit.setResizeWeight(0.44);
 
-        // Bảng kết quả (bên trái)
+        // --- Cột trái: bảng ở trên, tab ở dưới ---
         JPanel tablePanel = createTablePanel();
-        centerSplit.setLeftComponent(tablePanel);
+        // Bảng chỉ có vài dòng nên không cần cao; phần dư nhường cho các tab
+        tablePanel.setPreferredSize(new Dimension(520, 210));
 
-        // Biểu đồ (bên phải)
+        JSplitPane leftSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        leftSplit.setResizeWeight(0.22); // giãn cửa sổ thì tab nở, bảng giữ nguyên
+        leftSplit.setTopComponent(tablePanel);
+        leftSplit.setBottomComponent(createBottomPanel());
+        centerSplit.setLeftComponent(leftSplit);
+
+        // --- Cột phải: biểu đồ ---
         chartPanel = new BarChartPanel();
         JPanel chartWrapper = new JPanel(new BorderLayout());
         chartWrapper.setBorder(BorderFactory.createTitledBorder("Bieu do so sanh (ms)"));
@@ -81,10 +96,6 @@ public class StreamComparisonGUI extends JFrame {
         centerSplit.setRightComponent(chartWrapper);
 
         mainPanel.add(centerSplit, BorderLayout.CENTER);
-
-        // ========== BOTTOM: Log + Lý thuyết ==========
-        JPanel bottomPanel = createBottomPanel();
-        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
 
         setContentPane(mainPanel);
     }
@@ -177,8 +188,9 @@ public class StreamComparisonGUI extends JFrame {
      * Tạo panel phía dưới chứa log và lý thuyết.
      */
     private JPanel createBottomPanel() {
+        // Không đặt preferredSize cố định nữa: các tab nay nằm trong JSplitPane
+        // dọc ở cột trái nên tự lấy hết phần chiều cao còn lại.
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.setPreferredSize(new Dimension(0, 180));
 
         // Tab Log
         txtLog = new JTextArea();

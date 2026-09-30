@@ -65,7 +65,7 @@ public class HBarChartPanel extends JPanel {
     private static final int GROUP_TITLE_HEIGHT = 24;
     private static final int GROUP_SPACING = 6;
     private static final int BAR_GAP = 6;
-    private static final int MAX_BAR_HEIGHT = 30;
+    private static final int MAX_BAR_HEIGHT = 46;
     private static final int MIN_BAR_HEIGHT = 8;
     private static final int MIN_BAR_WIDTH = 3;
     private static final double HEADROOM = 1.12; // chừa chỗ cho nhãn giá trị
@@ -111,7 +111,13 @@ public class HBarChartPanel extends JPanel {
         g2.fillRect(PAD_LEFT, PAD_TOP, chartW, availableH);
 
         int barHeight = computeBarHeight(availableH);
-        int y = PAD_TOP;
+
+        // Căn GIỮA theo chiều dọc: chiều cao mỗi thanh bị chặn trên bởi
+        // MAX_BAR_HEIGHT nên khi panel cao, nội dung không lấp hết. Nếu vẽ từ mép
+        // trên thì phần dư dồn hết xuống dưới thành một mảng trắng lớn.
+        int contentH = computeContentHeight(barHeight);
+        int y = PAD_TOP + Math.max((availableH - contentH) / 2, 0);
+
         int colorIndex = 0;
 
         for (int gIdx = 0; gIdx < groupTitles.length; gIdx++) {
@@ -139,10 +145,7 @@ public class HBarChartPanel extends JPanel {
 
     /** Tính chiều cao mỗi thanh sao cho tất cả nhóm vừa khít panel. */
     private int computeBarHeight(int availableH) {
-        int totalBars = 0;
-        for (double[] group : values) {
-            totalBars += group.length;
-        }
+        int totalBars = countBars();
         if (totalBars == 0) {
             return MIN_BAR_HEIGHT;
         }
@@ -152,6 +155,21 @@ public class HBarChartPanel extends JPanel {
         int height = (availableH - overhead) / totalBars;
 
         return Math.max(Math.min(height, MAX_BAR_HEIGHT), MIN_BAR_HEIGHT);
+    }
+
+    /** Tổng chiều cao thực tế của nội dung, dùng để căn giữa theo chiều dọc. */
+    private int computeContentHeight(int barHeight) {
+        return groupTitles.length * (GROUP_TITLE_HEIGHT + GROUP_SPACING)
+                + countBars() * (barHeight + BAR_GAP);
+    }
+
+    /** Đếm tổng số thanh của mọi nhóm. */
+    private int countBars() {
+        int total = 0;
+        for (double[] group : values) {
+            total += group.length;
+        }
+        return total;
     }
 
     /** Tìm giá trị lớn nhất trong một nhóm (tối thiểu 1 để không chia 0). */

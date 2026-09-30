@@ -23,8 +23,8 @@ import java.io.IOException;
  */
 public class StreamComparison {
 
-    /** Các kích thước file test (MB). */
-    private static final int[] TEST_SIZES_MB = {1, 5, 10, 20};
+    /** Các kích thước file test (MB) — định nghĩa tập trung ở StreamBenchmark. */
+    private static final int[] TEST_SIZES_MB = StreamBenchmark.defaultSizesMB();
 
     /** Kích thước file dùng cho phần DEMO đọc/ghi cơ bản (nhỏ cho nhanh). */
     private static final int DEMO_SIZE_MB = 2;

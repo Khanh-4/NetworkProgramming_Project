@@ -53,14 +53,25 @@ public class PerformanceChartGUI extends JFrame {
         // ========== HEADER ==========
         mainPanel.add(createHeaderPanel(), BorderLayout.NORTH);
 
-        // ========== CENTER: Table + Chart ==========
+        // ========== CENTER ==========
+        // Bố cục: cột TRÁI = bảng kết quả ở trên + các tab log/lý thuyết ở dưới,
+        //         cột PHẢI = biểu đồ chiếm TRỌN chiều cao.
+        // Xem StreamComparisonGUI (đề tài 1) để biết lý do bỏ BorderLayout.SOUTH.
         JSplitPane centerSplit = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        centerSplit.setResizeWeight(0.5);
+        centerSplit.setResizeWeight(0.48);
 
-        // Bảng kết quả
-        centerSplit.setLeftComponent(createTablePanel());
+        // --- Cột trái: bảng ở trên, tab ở dưới ---
+        JPanel tablePanel = createTablePanel();
+        // Bảng chỉ 6 dòng nên không cần cao; phần dư nhường cho các tab
+        tablePanel.setPreferredSize(new Dimension(560, 250));
 
-        // Biểu đồ
+        JSplitPane leftSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        leftSplit.setResizeWeight(0.26); // giãn cửa sổ thì tab nở, bảng giữ nguyên
+        leftSplit.setTopComponent(tablePanel);
+        leftSplit.setBottomComponent(createBottomPanel());
+        centerSplit.setLeftComponent(leftSplit);
+
+        // --- Cột phải: biểu đồ ---
         chartPanel = new HBarChartPanel();
         JPanel chartWrapper = new JPanel(new BorderLayout());
         chartWrapper.setBorder(BorderFactory.createTitledBorder("Bieu do toc do I/O (ms)"));
@@ -68,9 +79,6 @@ public class PerformanceChartGUI extends JFrame {
         centerSplit.setRightComponent(chartWrapper);
 
         mainPanel.add(centerSplit, BorderLayout.CENTER);
-
-        // ========== BOTTOM ==========
-        mainPanel.add(createBottomPanel(), BorderLayout.SOUTH);
 
         setContentPane(mainPanel);
     }
@@ -154,8 +162,9 @@ public class PerformanceChartGUI extends JFrame {
     }
 
     private JPanel createBottomPanel() {
+        // Không đặt preferredSize cố định nữa: các tab nay nằm trong JSplitPane
+        // dọc ở cột trái nên tự lấy hết phần chiều cao còn lại.
         JTabbedPane tabs = new JTabbedPane();
-        tabs.setPreferredSize(new Dimension(0, 200));
 
         // Tab Log
         txtLog = new JTextArea();

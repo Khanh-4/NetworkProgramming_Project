@@ -38,6 +38,28 @@ import java.util.function.Consumer;
  */
 public final class StreamBenchmark {
 
+    /**
+     * Dãy kích thước file test (MB), dùng chung cho cả console và GUI.
+     *
+     * VÌ SAO BỎ MỐC 1 MB?
+     *   Đọc 1 MB từ page cache chỉ mất khoảng 0.2-0.6 ms, tức sát sàn phân giải
+     *   của phép đo. Chỉ cần OS hoặc antivirus chen ngang một nhịp là con số lệch
+     *   hẳn, kéo theo tỉ lệ "CharStream chậm hơn mấy lần" vọt lên bất thường
+     *   (đã quan sát: 53.8x ở mốc 1 MB trong khi các mốc khác chỉ 17-23x).
+     *   Bắt đầu từ 5 MB thì mọi phép đo đều đủ lớn để thoát vùng nhiễu đó.
+     */
+    private static final int[] DEFAULT_SIZES_MB = {5, 10, 20, 40};
+
+    /**
+     * Trả về dãy kích thước file test.
+     *
+     * Trả BẢN SAO chứ không trả mảng gốc: mảng trong Java luôn thay đổi được,
+     * nếu trả thẳng thì bên gọi có thể sửa và làm hỏng dãy dùng chung.
+     */
+    public static int[] defaultSizesMB() {
+        return DEFAULT_SIZES_MB.clone();
+    }
+
     /** Buffer đọc của ByteStream: 8 KB, khớp block size phổ biến của đĩa. */
     private static final int BYTE_BUFFER_SIZE = 8192;
 
