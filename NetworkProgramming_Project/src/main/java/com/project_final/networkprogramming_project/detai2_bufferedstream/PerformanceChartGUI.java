@@ -90,7 +90,8 @@ public class PerformanceChartGUI extends JFrame {
         // --- Cột phải: biểu đồ ---
         chartPanel = new HBarChartPanel();
         JPanel chartWrapper = new JPanel(new BorderLayout());
-        chartWrapper.setBorder(BorderFactory.createTitledBorder("Bieu do toc do I/O (ms)"));
+        chartWrapper.setBorder(BorderFactory.createTitledBorder(
+                "Bieu do toc do I/O (MB/s) - cang dai cang nhanh"));
         chartWrapper.add(chartPanel, BorderLayout.CENTER);
         centerSplit.setRightComponent(chartWrapper);
 
@@ -351,7 +352,12 @@ public class PerformanceChartGUI extends JFrame {
     }
 
     /**
-     * Vẽ biểu đồ theo 2 nhóm tách biệt, mỗi nhóm một thang đo riêng.
+     * Vẽ biểu đồ TỐC ĐỘ I/O theo 2 nhóm tách biệt, mỗi nhóm một thang đo riêng.
+     *
+     * Vẽ THÔNG LƯỢNG (MB/s) chứ không phải thời gian, vì đề bài yêu cầu
+     * "in biểu đồ TỐC ĐỘ I/O" — tốc độ là MB/s, thời gian là ms. Bản trước vẽ
+     * ms nên tiêu đề "Bieu do toc do I/O (ms)" tự mâu thuẫn.
+     * Thời gian vẫn được ghi kèm trong nhãn để đối chiếu với bảng.
      */
     private void updateChart() {
         if (results == null) {
@@ -366,9 +372,10 @@ public class PerformanceChartGUI extends JFrame {
             "Nhom B - doc theo khoi (file " + LARGE_FILE_MB + " MB)"
         };
         String[][] barLabels = {toLabels(groupA), toLabels(groupB)};
-        double[][] values = {toMillis(groupA), toMillis(groupB)};
+        double[][] values = {toThroughput(groupA), toThroughput(groupB)};
+        String[][] valueTexts = {toValueTexts(groupA), toValueTexts(groupB)};
 
-        chartPanel.setData(groupTitles, barLabels, values);
+        chartPanel.setData(groupTitles, barLabels, values, valueTexts);
         chartPanel.repaint();
     }
 
@@ -381,13 +388,27 @@ public class PerformanceChartGUI extends JFrame {
         return labels;
     }
 
-    /** Trích thời gian (ms) để vẽ biểu đồ. */
-    private static double[] toMillis(CopyResult[] group) {
-        double[] millis = new double[group.length];
+    /** Trích thông lượng (MB/s) — đại lượng quyết định độ dài thanh. */
+    private static double[] toThroughput(CopyResult[] group) {
+        double[] speeds = new double[group.length];
         for (int i = 0; i < group.length; i++) {
-            millis[i] = group[i].ms();
+            speeds[i] = group[i].throughputMBps();
         }
-        return millis;
+        return speeds;
+    }
+
+    /** Chuỗi hiển thị cạnh thanh: tốc độ là chính, thời gian ghi kèm. */
+    private static String[] toValueTexts(CopyResult[] group) {
+        String[] texts = new String[group.length];
+        for (int i = 0; i < group.length; i++) {
+            CopyResult r = group[i];
+            // Tốc độ dưới 10 MB/s cần phần thập phân mới phân biệt được
+            String speed = r.throughputMBps() < 10
+                    ? String.format("%.1f MB/s", r.throughputMBps())
+                    : String.format("%.0f MB/s", r.throughputMBps());
+            texts[i] = speed + "  ·  " + String.format("%.2f ms", r.ms());
+        }
+        return texts;
     }
 
 

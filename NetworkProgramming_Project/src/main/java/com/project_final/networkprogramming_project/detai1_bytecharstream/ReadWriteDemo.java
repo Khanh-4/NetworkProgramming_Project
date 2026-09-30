@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -47,6 +48,7 @@ public final class ReadWriteDemo {
     private static final int LINE_COUNT = 20_000;
 
     private static final String FILE_BY_BYTE_STREAM = "demo_write_bytestream.txt";
+    private static final String FILE_BY_FILE_WRITER = "demo_write_filewriter.txt";
     private static final String FILE_BY_CHAR_STREAM = "demo_write_charstream.txt";
 
     private ReadWriteDemo() {
@@ -69,12 +71,14 @@ public final class ReadWriteDemo {
         String content = SAMPLE_LINE.repeat(LINE_COUNT);
         TestFileUtils.ensureTestDir();
 
-        String bytePath = TestFileUtils.getTestDir() + File.separator + FILE_BY_BYTE_STREAM;
-        String charPath = TestFileUtils.getTestDir() + File.separator + FILE_BY_CHAR_STREAM;
+        String dir = TestFileUtils.getTestDir() + File.separator;
+        String bytePath = dir + FILE_BY_BYTE_STREAM;
+        String writerPath = dir + FILE_BY_FILE_WRITER;
+        String charPath = dir + FILE_BY_CHAR_STREAM;
 
         try {
-            appendWriteSection(out, content, bytePath, charPath);
-            appendVerifySection(out, bytePath, charPath);
+            appendWriteSection(out, content, bytePath, writerPath, charPath);
+            appendVerifySection(out, bytePath, writerPath, charPath);
             appendReadSection(out, bytePath);
             appendSummary(out);
 
@@ -82,8 +86,9 @@ public final class ReadWriteDemo {
             out.append("\n[LỖI] Không đọc/ghi được file demo: ")
                .append(e.getMessage()).append("\n");
         } finally {
-            // Dọn 2 file demo, không để rác lại trong project
+            // Dọn file demo, không để rác lại trong project
             new File(bytePath).delete();
+            new File(writerPath).delete();
             new File(charPath).delete();
         }
 
@@ -91,39 +96,50 @@ public final class ReadWriteDemo {
     }
 
     /** Phần 1: ghi cùng một nội dung bằng hai cách, đo thời gian. */
-    private static void appendWriteSection(StringBuilder out, String content,
-                                           String bytePath, String charPath)
+    private static void appendWriteSection(StringBuilder out, String content, String bytePath,
+                                           String writerPath, String charPath)
             throws IOException {
-        out.append("1) GHI FILE — ").append(LINE_COUNT).append(" dòng tiếng Việt có dấu\n\n");
+        out.append("1) GHI FILE — ").append(LINE_COUNT).append(" dòng tiếng Việt có dấu\n");
+        out.append("   Ba cách ghi cùng một nội dung, để thấy ai lo việc encode.\n\n");
 
         long byteNanos = MedianTimer.medianNanos(() -> writeWithByteStream(bytePath, content));
-        out.append("   • ByteStream (FileOutputStream)\n");
+        out.append("   • ByteStream — FileOutputStream\n");
         out.append("     Thời gian   : ").append(formatMs(byteNanos)).append("\n");
         out.append("     Cách viết   : fos.write(content.getBytes(StandardCharsets.UTF_8))\n");
-        out.append("     Phải tự làm : gọi getBytes() và TỰ chỉ định charset\n\n");
+        out.append("     Ai encode?  : LẬP TRÌNH VIÊN — phải tự gọi getBytes() kèm charset\n\n");
+
+        long writerNanos = MedianTimer.medianNanos(() -> writeWithFileWriter(writerPath, content));
+        out.append("   • CharStream — FileWriter (lớp ghi ký tự dành riêng cho file)\n");
+        out.append("     Thời gian   : ").append(formatMs(writerNanos)).append("\n");
+        out.append("     Cách viết   : new FileWriter(path, StandardCharsets.UTF_8)\n");
+        out.append("     Ai encode?  : THƯ VIỆN — CharsetEncoder lo, ta chỉ đưa String\n\n");
 
         long charNanos = MedianTimer.medianNanos(() -> writeWithCharStream(charPath, content));
-        out.append("   • CharStream (OutputStreamWriter)\n");
+        out.append("   • CharStream — OutputStreamWriter bọc FileOutputStream\n");
         out.append("     Thời gian   : ").append(formatMs(charNanos)).append("\n");
-        out.append("     Cách viết   : writer.write(content)\n");
-        out.append("     Tự động     : CharsetEncoder lo phần đổi ký tự sang byte\n\n");
+        out.append("     Cách viết   : new OutputStreamWriter(new FileOutputStream(p), UTF_8)\n");
+        out.append("     Ai encode?  : THƯ VIỆN — giống FileWriter, nhưng bọc được MỌI\n");
+        out.append("                   OutputStream (socket, ZIP...) chứ không chỉ file\n\n");
     }
 
     /** Phần 2: kiểm chứng hai file giống hệt nhau. */
-    private static void appendVerifySection(StringBuilder out,
-                                            String bytePath, String charPath) {
+    private static void appendVerifySection(StringBuilder out, String bytePath,
+                                            String writerPath, String charPath) {
         long byteSize = new File(bytePath).length();
+        long writerSize = new File(writerPath).length();
         long charSize = new File(charPath).length();
+        boolean allSame = byteSize == writerSize && writerSize == charSize;
 
-        out.append("2) KIỂM CHỨNG — hai cách ghi có ra cùng kết quả không?\n\n");
-        out.append("   Kích thước file ByteStream ghi : ").append(byteSize).append(" byte\n");
-        out.append("   Kích thước file CharStream ghi : ").append(charSize).append(" byte\n");
-        out.append("   Giống nhau?                    : ")
-           .append(byteSize == charSize ? "CÓ" : "KHÔNG").append("\n\n");
-        out.append("   → Cùng kích thước vì cả hai đều encode UTF-8. Khác biệt nằm ở\n");
-        out.append("     CHỖ encode: ByteStream bắt ta tự làm, CharStream làm hộ.\n");
-        out.append("     Nếu quên charset, ByteStream dùng charset mặc định và file\n");
-        out.append("     có thể khác nhau giữa 2 máy (xem phần Bẫy encoding).\n\n");
+        out.append("2) KIỂM CHỨNG — ba cách ghi có ra cùng kết quả không?\n\n");
+        out.append("   FileOutputStream   : ").append(byteSize).append(" byte\n");
+        out.append("   FileWriter         : ").append(writerSize).append(" byte\n");
+        out.append("   OutputStreamWriter : ").append(charSize).append(" byte\n");
+        out.append("   Giống nhau?        : ").append(allSame ? "CÓ" : "KHÔNG").append("\n\n");
+        out.append("   → Cùng kích thước vì cả ba đều encode UTF-8. Khác biệt KHÔNG nằm\n");
+        out.append("     ở kết quả mà ở AI làm việc encode: ByteStream bắt ta tự làm,\n");
+        out.append("     hai lớp CharStream làm hộ.\n");
+        out.append("     Nếu quên charset, cả ba đều rơi về charset mặc định và file có\n");
+        out.append("     thể khác nhau giữa 2 máy (xem phần Bẫy encoding).\n\n");
     }
 
     /** Phần 3: đọc lại file bằng hai cách, so số byte với số ký tự. */
@@ -149,8 +165,10 @@ public final class ReadWriteDemo {
     /** Phần 4: chốt lại khi nào dùng cái nào. */
     private static void appendSummary(StringBuilder out) {
         out.append("4) DÙNG CÁI NÀO KHI GHI FILE?\n\n");
-        out.append("   Ghi VĂN BẢN  → CharStream, để encoder lo việc đổi ký tự sang byte\n");
-        out.append("     new OutputStreamWriter(new FileOutputStream(p), StandardCharsets.UTF_8)\n\n");
+        out.append("   Ghi VĂN BẢN xuống FILE → FileWriter, ngắn gọn nhất\n");
+        out.append("     new FileWriter(p, StandardCharsets.UTF_8)\n\n");
+        out.append("   Ghi VĂN BẢN xuống CHỖ KHÁC (socket, ZIP...) → OutputStreamWriter\n");
+        out.append("     new OutputStreamWriter(anyOutputStream, StandardCharsets.UTF_8)\n\n");
         out.append("   Ghi NHỊ PHÂN → BẮT BUỘC ByteStream, vì ảnh/video/.zip không phải\n");
         out.append("     văn bản, đưa qua encoder sẽ hỏng dữ liệu\n");
         out.append("     new FileOutputStream(p)\n\n");
@@ -173,7 +191,28 @@ public final class ReadWriteDemo {
     }
 
     /**
-     * Ghi bằng CharStream: đưa thẳng String, encoder tự lo phần đổi sang byte.
+     * Ghi bằng FileWriter — lớp CharStream dành riêng cho file.
+     *
+     * Đây là đối xứng của FileReader mà đề bài nêu: FileReader để đọc ký tự từ
+     * file, FileWriter để ghi ký tự xuống file.
+     *
+     * Constructor có tham số Charset chỉ tồn tại từ Java 11. Trước đó FileWriter
+     * KHÔNG cho chỉ định charset, buộc phải dùng OutputStreamWriter — đó là lý
+     * do nhiều tài liệu cũ khuyên tránh FileWriter.
+     */
+    private static void writeWithFileWriter(String filePath, String content)
+            throws IOException {
+        try (Writer writer = new FileWriter(filePath, StandardCharsets.UTF_8)) {
+            writer.write(content);
+        }
+    }
+
+    /**
+     * Ghi bằng OutputStreamWriter bọc FileOutputStream.
+     *
+     * Kết quả giống hệt FileWriter, nhưng linh hoạt hơn: bọc được MỌI
+     * OutputStream chứ không riêng file — ví dụ ghi ký tự xuống socket của
+     * chương trình mạng, hay vào một entry trong file ZIP.
      */
     private static void writeWithCharStream(String filePath, String content)
             throws IOException {

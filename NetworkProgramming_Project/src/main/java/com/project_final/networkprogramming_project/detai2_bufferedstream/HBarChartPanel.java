@@ -44,8 +44,17 @@ public class HBarChartPanel extends JPanel {
     /** Nhãn các thanh trong từng nhóm: [nhóm][thanh]. */
     private String[][] barLabels;
 
-    /** Giá trị các thanh trong từng nhóm (ms): [nhóm][thanh]. */
+    /** Giá trị các thanh trong từng nhóm, quyết định ĐỘ DÀI thanh: [nhóm][thanh]. */
     private double[][] values;
+
+    /**
+     * Chuỗi hiển thị cạnh mỗi thanh: [nhóm][thanh].
+     *
+     * Tách khỏi {@link #values} vì đơn vị do bên gọi quyết định — biểu đồ này
+     * vẽ tốc độ (MB/s) nhưng vẫn muốn ghi kèm thời gian (ms) cho dễ đối chiếu,
+     * mà panel thì không nên biết gì về ý nghĩa của con số.
+     */
+    private String[][] valueTexts;
 
     /** Màu cho từng phương pháp, dùng nối tiếp qua các nhóm. */
     private static final Color[] COLORS = {
@@ -59,7 +68,8 @@ public class HBarChartPanel extends JPanel {
 
     // ===== Hằng số bố cục =====
     private static final int PAD_LEFT = 170;
-    private static final int PAD_RIGHT = 95;
+    // Đủ rộng cho chuỗi dạng "1232 MB/s · 8.12 ms" nằm bên phải thanh
+    private static final int PAD_RIGHT = 165;
     private static final int PAD_TOP = 14;
     private static final int PAD_BOTTOM = 14;
     private static final int GROUP_TITLE_HEIGHT = 24;
@@ -84,17 +94,21 @@ public class HBarChartPanel extends JPanel {
      *
      * @param groupTitles tiêu đề từng nhóm
      * @param barLabels   nhãn các thanh [nhóm][thanh]
-     * @param values      giá trị ms [nhóm][thanh]
+     * @param values      giá trị quyết định độ dài thanh [nhóm][thanh]
+     * @param valueTexts  chuỗi hiển thị cạnh thanh, đã kèm đơn vị [nhóm][thanh]
      */
-    public void setData(String[] groupTitles, String[][] barLabels, double[][] values) {
+    public void setData(String[] groupTitles, String[][] barLabels,
+                        double[][] values, String[][] valueTexts) {
         this.groupTitles = groupTitles.clone();
 
         // Mảng 2 chiều: clone() chỉ sao chép tầng ngoài → phải sao chép từng hàng
         this.barLabels = new String[barLabels.length][];
         this.values = new double[values.length][];
+        this.valueTexts = new String[valueTexts.length][];
         for (int i = 0; i < barLabels.length; i++) {
             this.barLabels[i] = barLabels[i].clone();
             this.values[i] = values[i].clone();
+            this.valueTexts[i] = valueTexts[i].clone();
         }
     }
 
@@ -135,7 +149,8 @@ public class HBarChartPanel extends JPanel {
             double scaleMax = findMax(values[gIdx]) * HEADROOM;
 
             for (int bIdx = 0; bIdx < values[gIdx].length; bIdx++) {
-                drawBar(g2, barLabels[gIdx][bIdx], values[gIdx][bIdx], scaleMax,
+                drawBar(g2, barLabels[gIdx][bIdx], values[gIdx][bIdx],
+                        valueTexts[gIdx][bIdx], scaleMax,
                         chartW, y, barHeight, COLORS[colorIndex % COLORS.length]);
                 y += barHeight + BAR_GAP;
                 colorIndex++;
@@ -148,7 +163,7 @@ public class HBarChartPanel extends JPanel {
     /** Có đủ dữ liệu để vẽ hay chưa. */
     private boolean hasData() {
         return groupTitles != null && barLabels != null && values != null
-                && groupTitles.length > 0;
+                && valueTexts != null && groupTitles.length > 0;
     }
 
     /** Tính chiều cao mỗi thanh sao cho tất cả nhóm vừa khít panel. */
@@ -209,9 +224,9 @@ public class HBarChartPanel extends JPanel {
     }
 
     /** Vẽ một thanh ngang kèm nhãn trái và giá trị phải. */
-    private void drawBar(Graphics2D g2, String label, double valueMs, double scaleMax,
-                         int chartW, int y, int barHeight, Color color) {
-        int barW = Math.max((int) (valueMs * chartW / scaleMax), MIN_BAR_WIDTH);
+    private void drawBar(Graphics2D g2, String label, double value, String valueText,
+                         double scaleMax, int chartW, int y, int barHeight, Color color) {
+        int barW = Math.max((int) (value * chartW / scaleMax), MIN_BAR_WIDTH);
 
         g2.setColor(color);
         g2.fillRoundRect(PAD_LEFT + 1, y, barW, barHeight, 5, 5);
@@ -224,19 +239,9 @@ public class HBarChartPanel extends JPanel {
         FontMetrics fm = g2.getFontMetrics();
         g2.drawString(label, PAD_LEFT - fm.stringWidth(label) - 8, y + barHeight / 2 + 4);
 
-        // Giá trị bên phải thanh
+        // Giá trị bên phải thanh — chuỗi do bên gọi định dạng sẵn kèm đơn vị
         g2.setColor(Color.BLACK);
         g2.setFont(new Font("SansSerif", Font.BOLD, 11));
-        g2.drawString(formatMs(valueMs), PAD_LEFT + barW + 6, y + barHeight / 2 + 4);
-    }
-
-    /**
-     * Định dạng ms: giá trị nhỏ cần phần thập phân mới phân biệt được,
-     * giá trị lớn thì phần thập phân chỉ làm rối.
-     */
-    private String formatMs(double valueMs) {
-        return valueMs >= 100
-                ? String.format("%.0f ms", valueMs)
-                : String.format("%.2f ms", valueMs);
+        g2.drawString(valueText, PAD_LEFT + barW + 6, y + barHeight / 2 + 4);
     }
 }

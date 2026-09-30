@@ -130,7 +130,9 @@ public class PerformanceChart {
      * Vẽ biểu đồ tốc độ I/O trên console, mỗi nhóm một thang đo riêng.
      */
     private static void printBarChart(CopyResult[] results) {
-        System.out.println("📊 BIỂU ĐỒ TỐC ĐỘ I/O (càng ngắn càng nhanh):");
+        // Vẽ THÔNG LƯỢNG (MB/s) chứ không phải thời gian: đề bài yêu cầu
+        // "in biểu đồ TỐC ĐỘ I/O", mà tốc độ là MB/s còn thời gian là ms.
+        System.out.println("📊 BIỂU ĐỒ TỐC ĐỘ I/O — MB/s (càng dài càng nhanh):");
         System.out.println("─".repeat(62));
 
         printChartGroup("NHÓM A — đọc/ghi từng byte (file "
@@ -154,16 +156,24 @@ public class PerformanceChart {
         System.out.println();
         System.out.println("  " + title);
 
-        double maxMs = 1;
+        double maxSpeed = 0.001;
         for (CopyResult r : group) {
-            maxMs = Math.max(maxMs, r.ms());
+            maxSpeed = Math.max(maxSpeed, r.throughputMBps());
         }
 
         for (CopyResult r : group) {
-            int barLen = (int) (r.ms() * MAX_BAR_WIDTH / maxMs);
+            double speed = r.throughputMBps();
+            int barLen = (int) (speed * MAX_BAR_WIDTH / maxSpeed);
             barLen = Math.max(barLen, 1); // luôn thấy được thanh
-            System.out.printf("    %-22s │%-40s│ %9.2f ms%n",
-                    r.methodName(), String.valueOf(blockChar).repeat(barLen), r.ms());
+
+            // Tốc độ dưới 10 MB/s cần phần thập phân mới phân biệt được
+            String speedText = speed < 10
+                    ? String.format("%7.1f MB/s", speed)
+                    : String.format("%7.0f MB/s", speed);
+
+            System.out.printf("    %-22s │%-40s│ %s (%.2f ms)%n",
+                    r.methodName(), String.valueOf(blockChar).repeat(barLen),
+                    speedText, r.ms());
         }
     }
 

@@ -37,11 +37,23 @@ import java.util.function.Consumer;
  */
 public final class CopyBenchmark {
 
-    /** Kích thước file cho nhóm A — nhỏ, vì byte-by-byte rất chậm. */
+    /**
+     * Kích thước file cho nhóm A (MB).
+     *
+     * Phải để nhỏ vì đọc/ghi từng byte cực chậm: 1 MB đã mất khoảng 2.6 giây,
+     * nếu dùng 100 MB như nhóm B thì riêng phép đo này mất hơn 4 phút.
+     * Đây là ràng buộc kỹ thuật, không phải lười — chính sự chậm đó là thứ
+     * đề tài muốn chứng minh.
+     */
     public static final int SMALL_FILE_MB = 1;
 
-    /** Kích thước file cho nhóm B — lớn hơn để thấy rõ khác biệt cỡ buffer. */
-    public static final int LARGE_FILE_MB = 10;
+    /**
+     * Kích thước file cho nhóm B (MB) — đây là "tệp lớn" mà đề bài yêu cầu.
+     *
+     * 100 MB đủ lớn để thoát khỏi vùng nhiễu của phép đo mà vẫn chỉ mất khoảng
+     * 0.1 giây mỗi lần sao chép, nên chạy warm-up nhiều lần vẫn nhanh.
+     */
+    public static final int LARGE_FILE_MB = 100;
 
     /** Các cỡ buffer đem ra khảo sát ở nhóm B. */
     private static final int[] BUFFER_SIZES = {8192, 32768, 65536};
@@ -73,24 +85,29 @@ public final class CopyBenchmark {
         // ===== NHÓM A: đọc/ghi từng byte, file nhỏ =====
         report(log, "\n--- Nhom A: doc/ghi tung byte (file " + SMALL_FILE_MB + "MB) ---");
 
+        // Mọi phương pháp trong cùng một nhóm ghi vào CHUNG một file đích.
+        // Chúng chạy tuần tự nên không đụng nhau, mà lại tiết kiệm đáng kể dung
+        // lượng đĩa: nếu mỗi phương pháp một file đích riêng thì nhóm B cần tới
+        // 4 x 100 MB, nay chỉ còn 100 MB.
+        String destSmall = testDir + "/copy_small.dat";
+        String destLarge = testDir + "/copy_large.dat";
+
         results[idx++] = measure("Unbuf byte-by-byte", SMALL_FILE_MB, log,
-                () -> UnbufferedCopy.copyByteByByte(srcSmall, testDir + "/copy_a1.dat"));
+                () -> UnbufferedCopy.copyByteByByte(srcSmall, destSmall));
 
         results[idx++] = measure("Buffered byte-by-byte", SMALL_FILE_MB, log,
-                () -> BufferedCopy.copyWithDefaultBuffer(srcSmall, testDir + "/copy_a2.dat"));
+                () -> BufferedCopy.copyWithDefaultBuffer(srcSmall, destSmall));
 
         // ===== NHÓM B: đọc theo khối, file lớn =====
         report(log, "\n--- Nhom B: doc theo khoi (file " + LARGE_FILE_MB + "MB) ---");
 
         results[idx++] = measure("Unbuf chunk 8KB", LARGE_FILE_MB, log,
-                () -> UnbufferedCopy.copyWithChunk(srcLarge, testDir + "/copy_b0.dat", 8192));
+                () -> UnbufferedCopy.copyWithChunk(srcLarge, destLarge, 8192));
 
-        for (int i = 0; i < BUFFER_SIZES.length; i++) {
-            int bufferSize = BUFFER_SIZES[i];
-            String destPath = testDir + "/copy_b" + (i + 1) + ".dat";
+        for (int bufferSize : BUFFER_SIZES) {
             results[idx++] = measure("Buffered " + BufferedCopy.bufferLabel(bufferSize),
                     LARGE_FILE_MB, log,
-                    () -> BufferedCopy.copyWithCustomBuffer(srcLarge, destPath, bufferSize));
+                    () -> BufferedCopy.copyWithCustomBuffer(srcLarge, destLarge, bufferSize));
         }
 
         return results;
