@@ -171,7 +171,7 @@ public class NetworkProgramming_Project {
                 UDPServer.run();
                 break;
             case "b":
-                UDPClient.run();
+                UDPClient.run(scanner);
                 break;
             default:
                 System.out.println("⚠️  Lựa chọn không hợp lệ!");
@@ -184,7 +184,7 @@ public class NetworkProgramming_Project {
      */
     private static void runDetai6Menu(Scanner scanner) {
         System.out.println("--- ĐỀ TÀI 6: JAVA RMI ---");
-        System.out.println("  [a] Chạy RMI Server (khởi tạo Registry) - chạy trước");
+        System.out.println("  [a] Chạy RMI Server (dùng rmiregistry có sẵn hoặc tự tạo) - chạy trước");
         System.out.println("  [b] Chạy RMI Client (gọi hàm từ xa) - chạy sau");
         System.out.print("👉 Chọn: ");
         String sub = scanner.nextLine().trim().toLowerCase();
@@ -194,7 +194,7 @@ public class NetworkProgramming_Project {
                 CalculatorServer.run();
                 break;
             case "b":
-                CalculatorClient.run();
+                CalculatorClient.run(scanner);
                 break;
             default:
                 System.out.println("⚠️  Lựa chọn không hợp lệ!");
