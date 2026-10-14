@@ -150,7 +150,7 @@ public class NetworkProgramming_Project {
                 TCPServer.run();
                 break;
             case "b":
-                TCPClient.run();
+                TCPClient.run(scanner);
                 break;
             default:
                 System.out.println("⚠️  Lựa chọn không hợp lệ!");
