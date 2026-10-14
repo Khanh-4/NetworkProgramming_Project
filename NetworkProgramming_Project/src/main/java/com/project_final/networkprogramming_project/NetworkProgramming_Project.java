@@ -5,8 +5,9 @@ import java.util.Scanner;
 // Import các đề tài
 import com.project_final.networkprogramming_project.detai1_bytecharstream.StreamComparison;
 import com.project_final.networkprogramming_project.detai2_bufferedstream.PerformanceChart;
-import com.project_final.networkprogramming_project.detai3_ticketselling.UnsyncDemo;
-import com.project_final.networkprogramming_project.detai3_ticketselling.SyncDemo;
+import com.project_final.networkprogramming_project.detai3_threadpoolserver.ConcurrentClientsDemo;
+import com.project_final.networkprogramming_project.detai3_threadpoolserver.ReverseClient;
+import com.project_final.networkprogramming_project.detai3_threadpoolserver.ReverseServer;
 import com.project_final.networkprogramming_project.detai4_clientserver.TCPServer;
 import com.project_final.networkprogramming_project.detai4_clientserver.TCPClient;
 import com.project_final.networkprogramming_project.detai5_udp.UDPServer;
@@ -96,7 +97,7 @@ public class NetworkProgramming_Project {
         System.out.println("║                                                             ║");
         System.out.println("║  [1] Đề tài 1: Luồng Byte vs Ký tự       (Khánh)           ║");
         System.out.println("║  [2] Đề tài 2: Buffered Stream            (Khánh)           ║");
-        System.out.println("║  [3] Đề tài 3: Bán vé đa luồng           (Quân)            ║");
+        System.out.println("║  [3] Đề tài 3: Server đa luồng TCP       (Quân)            ║");
         System.out.println("║  [4] Đề tài 4: TCP Client-Server          (Quân)            ║");
         System.out.println("║  [5] Đề tài 5: UDP Ping-Pong              (Hiếu)            ║");
         System.out.println("║  [6] Đề tài 6: Java RMI                   (Hiếu)            ║");
@@ -107,29 +108,26 @@ public class NetworkProgramming_Project {
     }
 
     /**
-     * Sub-menu cho Đề tài 3: Bán vé đa luồng.
-     * Chọn chạy không đồng bộ hoặc có đồng bộ.
+     * Sub-menu cho Đề tài 3: Server TCP đa luồng dùng ThreadPool (trả chuỗi đảo ngược).
+     * Chọn chạy Server, Client tương tác, hoặc demo tự động nhiều client song song.
      */
     private static void runDetai3Menu(Scanner scanner) {
-        System.out.println("--- ĐỀ TÀI 3: BÁN VÉ ĐA LUỒNG ---");
-        System.out.println("  [a] Chạy KHÔNG đồng bộ (Unsynchronized) → thấy race condition");
-        System.out.println("  [b] Chạy CÓ đồng bộ (Synchronized) → kết quả đúng");
-        System.out.println("  [c] Chạy cả hai để so sánh");
+        System.out.println("--- ĐỀ TÀI 3: SERVER ĐA LUỒNG (THREADPOOL) ---");
+        System.out.println("  [a] Chạy Server (chạy trước)");
+        System.out.println("  [b] Chạy Client (mở ≥3 terminal khác, mỗi terminal 1 client)");
+        System.out.println("  [c] Demo tự động: 5 client song song + tự kiểm tra kết quả");
         System.out.print("👉 Chọn: ");
         String sub = scanner.nextLine().trim().toLowerCase();
 
         switch (sub) {
             case "a":
-                UnsyncDemo.run();
+                ReverseServer.run();
                 break;
             case "b":
-                SyncDemo.run();
+                ReverseClient.run(scanner);
                 break;
             case "c":
-                System.out.println(">>> KỊCH BẢN 1: KHÔNG ĐỒNG BỘ <<<");
-                UnsyncDemo.run();
-                System.out.println("\n>>> KỊCH BẢN 2: CÓ ĐỒNG BỘ <<<");
-                SyncDemo.run();
+                ConcurrentClientsDemo.run();
                 break;
             default:
                 System.out.println("⚠️  Lựa chọn không hợp lệ!");
