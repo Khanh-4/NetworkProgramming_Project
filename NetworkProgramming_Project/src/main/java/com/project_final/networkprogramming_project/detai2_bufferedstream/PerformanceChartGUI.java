@@ -46,7 +46,7 @@ public class PerformanceChartGUI extends JFrame {
     private JProgressBar progressBar;
 
     /** Kết quả benchmark, immutable, mỗi phần tử là một phương pháp sao chép. */
-    private CopyResult[] results;
+    private CopyBenchmark.Result[] results;
 
     public PerformanceChartGUI() {
         setTitle("De Tai 2: Buffered Stream vs Unbuffered Stream - Cao Duy Quoc Khanh");
@@ -220,7 +220,7 @@ public class PerformanceChartGUI extends JFrame {
             + "   Do 1 lan la SAI: lan chay dau con cache lanh + JIT chua bien dich,\n"
             + "   va o muc 7-11 ms thi rieng sai so lam tron da la +/-14%.\n"
             + "   Nhom B chi chenh nhau vai ms nen rat de dao thu tu neu do au.\n"
-            + "   Xu ly: moi phuong phap deu qua MedianTimer (warm-up + trung vi),\n"
+            + "   Xu ly: moi phuong phap deu qua BenchmarkUtils (warm-up + trung vi),\n"
             + "   va thoi gian luu bang NANO-giay thay vi long millisecond.\n\n"
             + "6. HAI NHOM KHONG SO CHEO NHAU:\n"
             + "   Nhom A chay file 1MB, nhom B chay file 10MB (byte-by-byte qua cham\n"
@@ -270,7 +270,7 @@ public class PerformanceChartGUI extends JFrame {
 
                 publish("\nDon dep file test...");
                 com.project_final.networkprogramming_project.detai1_bytecharstream
-                        .TestFileUtils.cleanupTestFiles();
+                        .BenchmarkUtils.cleanupTestFiles();
                 publish("Hoan tat!");
                 return null;
             }
@@ -332,9 +332,9 @@ public class PerformanceChartGUI extends JFrame {
             return;
         }
 
-        CopyResult slowestSmall = results[0]; // Unbuf byte-by-byte, moc so sanh nhom A
+        CopyBenchmark.Result slowestSmall = results[0]; // Unbuf byte-by-byte, moc so sanh nhom A
 
-        for (CopyResult r : results) {
+        for (CopyBenchmark.Result r : results) {
             boolean isGroupA = r.fileSizeMB() == SMALL_FILE_MB;
 
             String metric = isGroupA
@@ -364,8 +364,8 @@ public class PerformanceChartGUI extends JFrame {
             return;
         }
 
-        CopyResult[] groupA = CopyBenchmark.filterBySize(results, SMALL_FILE_MB);
-        CopyResult[] groupB = CopyBenchmark.filterBySize(results, LARGE_FILE_MB);
+        CopyBenchmark.Result[] groupA = CopyBenchmark.filterBySize(results, SMALL_FILE_MB);
+        CopyBenchmark.Result[] groupB = CopyBenchmark.filterBySize(results, LARGE_FILE_MB);
 
         String[] groupTitles = {
             "Nhom A - doc/ghi tung byte (file " + SMALL_FILE_MB + " MB)",
@@ -380,7 +380,7 @@ public class PerformanceChartGUI extends JFrame {
     }
 
     /** Trích tên phương pháp để làm nhãn biểu đồ. */
-    private static String[] toLabels(CopyResult[] group) {
+    private static String[] toLabels(CopyBenchmark.Result[] group) {
         String[] labels = new String[group.length];
         for (int i = 0; i < group.length; i++) {
             labels[i] = group[i].methodName();
@@ -389,7 +389,7 @@ public class PerformanceChartGUI extends JFrame {
     }
 
     /** Trích thông lượng (MB/s) — đại lượng quyết định độ dài thanh. */
-    private static double[] toThroughput(CopyResult[] group) {
+    private static double[] toThroughput(CopyBenchmark.Result[] group) {
         double[] speeds = new double[group.length];
         for (int i = 0; i < group.length; i++) {
             speeds[i] = group[i].throughputMBps();
@@ -398,10 +398,10 @@ public class PerformanceChartGUI extends JFrame {
     }
 
     /** Chuỗi hiển thị cạnh thanh: tốc độ là chính, thời gian ghi kèm. */
-    private static String[] toValueTexts(CopyResult[] group) {
+    private static String[] toValueTexts(CopyBenchmark.Result[] group) {
         String[] texts = new String[group.length];
         for (int i = 0; i < group.length; i++) {
-            CopyResult r = group[i];
+            CopyBenchmark.Result r = group[i];
             // Tốc độ dưới 10 MB/s cần phần thập phân mới phân biệt được
             String speed = r.throughputMBps() < 10
                     ? String.format("%.1f MB/s", r.throughputMBps())
@@ -421,7 +421,7 @@ public class PerformanceChartGUI extends JFrame {
 
     // Bốn method sao chép trước đây nằm ở đây đã bị xoá: chúng lặp lại y nguyên
     // logic của UnbufferedCopy và BufferedCopy, lại còn tự đo thời gian 1 lần
-    // bằng long millisecond. Nay mọi phép đo đi qua CopyBenchmark + MedianTimer.
+    // bằng long millisecond. Nay mọi phép đo đi qua CopyBenchmark + BenchmarkUtils.
 
     /**
      * Khởi chạy GUI.

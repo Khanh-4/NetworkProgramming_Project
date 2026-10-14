@@ -1,7 +1,6 @@
 package com.project_final.networkprogramming_project.detai2_bufferedstream;
 
-import com.project_final.networkprogramming_project.detai1_bytecharstream.MedianTimer;
-import com.project_final.networkprogramming_project.detai1_bytecharstream.TestFileUtils;
+import com.project_final.networkprogramming_project.detai1_bytecharstream.BenchmarkUtils;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -21,10 +20,10 @@ import java.io.IOException;
  *
  * GHI CHÚ VỀ THIẾT KẾ:
  *   Các method ở đây chỉ THỰC HIỆN việc sao chép, không tự đo thời gian và
- *   không tự in ra màn hình. Việc đo giao cho MedianTimer (có warm-up + trung
- *   vị), việc hiển thị giao cho PerformanceChart / PerformanceChartGUI.
- *   Tách như vậy thì cùng một đoạn code sao chép dùng được cho cả console lẫn
- *   GUI, và không còn 2 bản logic trùng nhau như trước.
+ *   không tự in ra màn hình. Việc đo giao cho BenchmarkUtils (có warm-up + trung
+ *   vị), việc hiển thị giao cho PerformanceChartGUI.
+ *   Tách như vậy thì cùng một đoạn code sao chép dùng được cho cả main() của
+ *   file này lẫn CopyBenchmark (GUI), không phải viết hai lần.
  *
  * @author Cao Duy Quốc Khánh
  */
@@ -118,26 +117,26 @@ public class UnbufferedCopy {
 
     /** Chế độ demo: tự tạo file test, đo bằng warm-up + trung vị, rồi dọn dẹp. */
     private static void runDemo() throws IOException {
-        TestFileUtils.ensureTestDir();
-        String src = TestFileUtils.getTestDir() + "/unbuf_demo_src.dat";
-        String dest = TestFileUtils.getTestDir() + "/unbuf_demo_dest.dat";
+        BenchmarkUtils.ensureTestDir();
+        String src = BenchmarkUtils.getTestDir() + "/unbuf_demo_src.dat";
+        String dest = BenchmarkUtils.getTestDir() + "/unbuf_demo_dest.dat";
 
         System.out.println("Không có tham số → chạy demo với file tự tạo "
                 + DEMO_FILE_MB + " MB.");
-        TestFileUtils.generateBinaryFile(src, DEMO_FILE_MB);
+        BenchmarkUtils.generateBinaryFile(src, DEMO_FILE_MB);
 
         try {
             System.out.println("Đang sao chép TỪNG BYTE (không buffer)...");
-            long nanos = MedianTimer.medianNanos(() -> copyByteByByte(src, dest));
+            long nanos = BenchmarkUtils.medianNanos(() -> copyByteByByte(src, dest));
 
             System.out.printf("✅ Xong: %.2f ms (trung vị, đã warm-up)%n",
-                    MedianTimer.toMs(nanos));
+                    BenchmarkUtils.toMs(nanos));
             System.out.println();
             System.out.println("Mỗi byte tốn 1 system call read() + 1 system call write()");
             System.out.println("→ file " + DEMO_FILE_MB + " MB = hơn 2 triệu system call.");
             System.out.println("So sánh với BufferedCopy để thấy chênh lệch.");
         } finally {
-            TestFileUtils.cleanupTestFiles(); // dọn dù thành công hay thất bại
+            BenchmarkUtils.cleanupTestFiles(); // dọn dù thành công hay thất bại
         }
     }
 

@@ -1,7 +1,6 @@
 package com.project_final.networkprogramming_project.detai2_bufferedstream;
 
-import com.project_final.networkprogramming_project.detai1_bytecharstream.MedianTimer;
-import com.project_final.networkprogramming_project.detai1_bytecharstream.TestFileUtils;
+import com.project_final.networkprogramming_project.detai1_bytecharstream.BenchmarkUtils;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
@@ -136,21 +135,21 @@ public class BufferedCopy {
 
     /** Chế độ demo: tự tạo file test, đo bằng warm-up + trung vị, rồi dọn dẹp. */
     private static void runDemo() throws IOException {
-        TestFileUtils.ensureTestDir();
-        String src = TestFileUtils.getTestDir() + "/buf_demo_src.dat";
-        String dest = TestFileUtils.getTestDir() + "/buf_demo_dest.dat";
+        BenchmarkUtils.ensureTestDir();
+        String src = BenchmarkUtils.getTestDir() + "/buf_demo_src.dat";
+        String dest = BenchmarkUtils.getTestDir() + "/buf_demo_dest.dat";
 
         System.out.println("Không có tham số → chạy demo với file tự tạo "
                 + DEMO_FILE_MB + " MB.");
-        TestFileUtils.generateBinaryFile(src, DEMO_FILE_MB);
+        BenchmarkUtils.generateBinaryFile(src, DEMO_FILE_MB);
 
         try {
             System.out.println("Đang sao chép TỪNG BYTE qua buffer "
                     + bufferLabel(DEFAULT_BUFFER_SIZE) + "...");
-            long nanos = MedianTimer.medianNanos(() -> copyWithDefaultBuffer(src, dest));
+            long nanos = BenchmarkUtils.medianNanos(() -> copyWithDefaultBuffer(src, dest));
 
             System.out.printf("✅ Xong: %.2f ms (trung vị, đã warm-up)%n",
-                    MedianTimer.toMs(nanos));
+                    BenchmarkUtils.toMs(nanos));
             System.out.println();
             System.out.println("Vẫn gọi read() từng byte, nhưng phần lớn lấy từ buffer trong RAM");
             System.out.println("→ file " + DEMO_FILE_MB + " MB chỉ còn khoảng "
@@ -158,7 +157,7 @@ public class BufferedCopy {
                     + " system call cho mỗi chiều.");
             System.out.println("So sánh với UnbufferedCopy để thấy chênh lệch.");
         } finally {
-            TestFileUtils.cleanupTestFiles(); // dọn dù thành công hay thất bại
+            BenchmarkUtils.cleanupTestFiles(); // dọn dù thành công hay thất bại
         }
     }
 

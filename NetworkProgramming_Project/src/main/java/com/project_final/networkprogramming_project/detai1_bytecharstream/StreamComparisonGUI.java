@@ -20,10 +20,9 @@ import java.util.concurrent.ExecutionException;
  */
 public class StreamComparisonGUI extends JFrame {
 
-    // Các kích thước file test (MB) — định nghĩa tập trung ở StreamBenchmark
-    // để console và GUI không bao giờ chạy trên hai dãy khác nhau.
+    // Các kích thước file test (MB) — định nghĩa tập trung ở StreamBenchmark.
     private static final int[] TEST_SIZES_MB = StreamBenchmark.defaultSizesMB();
-    private static final String TEST_DIR = TestFileUtils.getTestDir();
+    private static final String TEST_DIR = BenchmarkUtils.getTestDir();
 
     /** Chiều cao một dòng của bảng kết quả (px). */
     private static final int ROW_HEIGHT = 30;
@@ -44,7 +43,7 @@ public class StreamComparisonGUI extends JFrame {
     private JLabel lblStatus;
 
     /** Kết quả benchmark, mỗi phần tử ứng với một kích thước file trong TEST_SIZES_MB. */
-    private BenchmarkResult[] results;
+    private StreamBenchmark.Result[] results;
 
     // ===== Tên và màu 4 series của biểu đồ =====
     private static final String[] SERIES_NAMES = {
@@ -259,7 +258,7 @@ public class StreamComparisonGUI extends JFrame {
         JTextArea txtReadWrite = new JTextArea();
         txtReadWrite.setEditable(false);
         txtReadWrite.setFont(new Font("Monospaced", Font.PLAIN, 11));
-        txtReadWrite.setText(ReadWriteDemo.buildReport());
+        txtReadWrite.setText(StreamDemos.readWriteReport());
         txtReadWrite.setCaretPosition(0); // cuon ve dau, khong de o cuoi
         tabbedPane.addTab("Demo doc/ghi", new JScrollPane(txtReadWrite));
 
@@ -267,7 +266,7 @@ public class StreamComparisonGUI extends JFrame {
         JTextArea txtEncoding = new JTextArea();
         txtEncoding.setEditable(false);
         txtEncoding.setFont(new Font("Monospaced", Font.PLAIN, 11));
-        txtEncoding.setText(EncodingDemo.buildReport());
+        txtEncoding.setText(StreamDemos.encodingReport());
         txtEncoding.setCaretPosition(0); // cuon ve dau, khong de o cuoi
         tabbedPane.addTab("Bay encoding", new JScrollPane(txtEncoding));
 
@@ -289,8 +288,8 @@ public class StreamComparisonGUI extends JFrame {
         SwingWorker<Void, String> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() throws IOException {
-                BenchmarkResult[] collected = new BenchmarkResult[TEST_SIZES_MB.length];
-                TestFileUtils.ensureTestDir();
+                StreamBenchmark.Result[] collected = new StreamBenchmark.Result[TEST_SIZES_MB.length];
+                BenchmarkUtils.ensureTestDir();
 
                 for (int i = 0; i < TEST_SIZES_MB.length; i++) {
                     int sizeMB = TEST_SIZES_MB[i];
@@ -299,8 +298,8 @@ public class StreamComparisonGUI extends JFrame {
 
                     publish("--- Test voi file " + sizeMB + " MB ---");
                     publish("Tao file test (text UTF-8 + binary)...");
-                    TestFileUtils.generateTextFile(textFile, sizeMB);
-                    TestFileUtils.generateBinaryFile(binaryFile, sizeMB);
+                    BenchmarkUtils.generateTextFile(textFile, sizeMB);
+                    BenchmarkUtils.generateBinaryFile(binaryFile, sizeMB);
 
                     // Engine tu lo warm-up + do nhieu lan + lay trung vi
                     collected[i] = StreamBenchmark.measure(
@@ -311,7 +310,7 @@ public class StreamComparisonGUI extends JFrame {
                 results = collected;
 
                 publish("Don dep file test...");
-                TestFileUtils.cleanupTestFiles();
+                BenchmarkUtils.cleanupTestFiles();
                 publish("Hoan tat!");
                 return null;
             }
@@ -365,7 +364,7 @@ public class StreamComparisonGUI extends JFrame {
         if (results == null) {
             return;
         }
-        for (BenchmarkResult r : results) {
+        for (StreamBenchmark.Result r : results) {
             tableModel.addRow(new Object[]{
                 r.sizeMB() + " MB",
                 String.format("%.2f", r.byteOnTextMs()),
@@ -388,7 +387,7 @@ public class StreamComparisonGUI extends JFrame {
         double[][] values = new double[SERIES_NAMES.length][results.length];
 
         for (int i = 0; i < results.length; i++) {
-            BenchmarkResult r = results[i];
+            StreamBenchmark.Result r = results[i];
             xLabels[i] = r.sizeMB() + " MB";
             values[0][i] = r.byteOnTextMs();
             values[1][i] = r.charOnTextMs();

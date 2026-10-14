@@ -1,12 +1,11 @@
 package com.project_final.networkprogramming_project.detai2_bufferedstream;
 
-import com.project_final.networkprogramming_project.detai1_bytecharstream.MedianTimer;
-import com.project_final.networkprogramming_project.detai1_bytecharstream.TestFileUtils;
+import com.project_final.networkprogramming_project.detai1_bytecharstream.BenchmarkUtils;
 import java.io.IOException;
 import java.util.function.Consumer;
 
 /**
- * Đề tài 2: Engine đo tốc độ sao chép — dùng chung cho console và GUI.
+ * Đề tài 2: Engine đo tốc độ sao chép — dùng cho GUI.
  * =====================================================================
  *
  * VÌ SAO PHẢI VIẾT LẠI PHẦN ĐO?
@@ -18,7 +17,7 @@ import java.util.function.Consumer;
  * → Kết quả đo được (8KB: 11 ms, 32KB: 11 ms, 64KB: 7 ms) nằm trọn trong vùng
  *   nhiễu, không đủ căn cứ để kết luận buffer nào nhanh hơn buffer nào.
  *
- * Nay mọi phương pháp đều đo qua {@link MedianTimer}: có warm-up, lặp nhiều lần,
+ * Nay mọi phương pháp đều đo qua {@link BenchmarkUtils}: có warm-up, lặp nhiều lần,
  * lấy trung vị, và trả về nanosecond.
  *
  * HAI NHÓM PHÉP ĐO — KHÔNG ĐƯỢC SO CHÉO NHAU:
@@ -62,6 +61,40 @@ public final class CopyBenchmark {
     }
 
     /**
+     * Kết quả đo của MỘT phương pháp sao chép.
+     *
+     * Dùng {@code record} nên mọi field đều final → object BẤT BIẾN (immutable).
+     * Thời gian lưu bằng NANOSECOND: nhóm có buffer chỉ mất vài ms, lưu long ms
+     * thì sai số làm tròn ±1 ms đã là ±14% — không đủ để so các cỡ buffer.
+     *
+     * Trường {@code fileSizeMB} là bắt buộc vì hai nhóm chạy trên hai kích thước
+     * file khác nhau; thiếu nó thì biểu đồ sẽ vẽ chung một trục và so sánh nhầm.
+     *
+     * @param methodName tên phương pháp, hiển thị trên bảng và biểu đồ
+     * @param fileSizeMB kích thước file đã dùng để đo (MB)
+     * @param nanos      thời gian trung vị (nanosecond)
+     */
+    public record Result(String methodName, int fileSizeMB, long nanos) {
+
+        public double ms() {
+            return BenchmarkUtils.toMs(nanos);
+        }
+
+        /**
+         * Thông lượng tính theo MB/s, trên lượng dữ liệu nguồn.
+         * Thực tế đĩa phải chịu gấp đôi vì vừa đọc vừa ghi.
+         */
+        public double throughputMBps() {
+            return nanos <= 0 ? 0 : fileSizeMB / (nanos / 1_000_000_000.0);
+        }
+
+        /** Nhanh hơn kết quả tham chiếu bao nhiêu lần. */
+        public double speedupOver(Result baseline) {
+            return nanos <= 0 ? 0 : (double) baseline.nanos() / nanos;
+        }
+    }
+
+    /**
      * Chạy toàn bộ phép đo và trả về kết quả theo đúng thứ tự hiển thị.
      *
      * @param testDir thư mục chứa file test
@@ -69,17 +102,17 @@ public final class CopyBenchmark {
      * @return mảng kết quả: 2 phần tử nhóm A rồi 4 phần tử nhóm B
      * @throws IOException nếu tạo/đọc/ghi file thất bại
      */
-    public static CopyResult[] runAll(String testDir, Consumer<String> log) throws IOException {
-        TestFileUtils.ensureTestDir();
+    public static Result[] runAll(String testDir, Consumer<String> log) throws IOException {
+        BenchmarkUtils.ensureTestDir();
 
         String srcSmall = testDir + "/source_" + SMALL_FILE_MB + "MB.dat";
         String srcLarge = testDir + "/source_" + LARGE_FILE_MB + "MB.dat";
 
         report(log, "Tao file test " + SMALL_FILE_MB + "MB va " + LARGE_FILE_MB + "MB...");
-        TestFileUtils.generateBinaryFile(srcSmall, SMALL_FILE_MB);
-        TestFileUtils.generateBinaryFile(srcLarge, LARGE_FILE_MB);
+        BenchmarkUtils.generateBinaryFile(srcSmall, SMALL_FILE_MB);
+        BenchmarkUtils.generateBinaryFile(srcLarge, LARGE_FILE_MB);
 
-        CopyResult[] results = new CopyResult[3 + BUFFER_SIZES.length];
+        Result[] results = new Result[3 + BUFFER_SIZES.length];
         int idx = 0;
 
         // ===== NHÓM A: đọc/ghi từng byte, file nhỏ =====
@@ -114,32 +147,32 @@ public final class CopyBenchmark {
     }
 
     /**
-     * Đo một phương pháp qua MedianTimer rồi đóng gói thành CopyResult.
+     * Đo một phương pháp qua BenchmarkUtils rồi đóng gói thành Result.
      */
-    private static CopyResult measure(String methodName, int fileSizeMB,
+    private static Result measure(String methodName, int fileSizeMB,
                                       Consumer<String> log,
-                                      MedianTimer.TimedTask task) throws IOException {
+                                      BenchmarkUtils.TimedTask task) throws IOException {
         report(log, "  Dang do: " + methodName + "...");
-        long nanos = MedianTimer.medianNanos(task);
+        long nanos = BenchmarkUtils.medianNanos(task);
 
-        CopyResult result = new CopyResult(methodName, fileSizeMB, nanos);
+        Result result = new Result(methodName, fileSizeMB, nanos);
         report(log, String.format("  => %s : %.2f ms (%.1f MB/s)",
                 methodName, result.ms(), result.throughputMBps()));
         return result;
     }
 
     /** Lọc kết quả theo kích thước file, dùng để tách nhóm khi vẽ biểu đồ. */
-    public static CopyResult[] filterBySize(CopyResult[] results, int fileSizeMB) {
+    public static Result[] filterBySize(Result[] results, int fileSizeMB) {
         int count = 0;
-        for (CopyResult r : results) {
+        for (Result r : results) {
             if (r.fileSizeMB() == fileSizeMB) {
                 count++;
             }
         }
 
-        CopyResult[] filtered = new CopyResult[count];
+        Result[] filtered = new Result[count];
         int i = 0;
-        for (CopyResult r : results) {
+        for (Result r : results) {
             if (r.fileSizeMB() == fileSizeMB) {
                 filtered[i++] = r;
             }
