@@ -78,7 +78,7 @@ public final class ConcurrentClientsDemo {
     }
 
     private static boolean runDemo() {
-        System.out.println("=== ĐỀ TÀI 3: DEMO " + CLIENT_COUNT + " CLIENT CHẠY SONG SONG ===\n");
+        System.out.println("=== DE TAI 3: DEMO " + CLIENT_COUNT + " CLIENT CHAY SONG SONG ===\n");
         ReverseServer server;
         List<ClientReport> reports;
         try (ReverseServer running = new ReverseServer(0, ReverseServer.POOL_SIZE)) {
@@ -86,7 +86,7 @@ public final class ConcurrentClientsDemo {
             new Thread(running::serve, "server-accept").start();
             reports = runClients(running.port());
         } catch (IOException e) {
-            System.out.println("❌ Không khởi động được server: " + e.getMessage());
+            System.out.println("[X] Khong khoi dong duoc server: " + e.getMessage());
             return false;
         }
         // In bảng SAU khi try-with-resources đã close() server: close() chờ các worker
@@ -122,12 +122,12 @@ public final class ConcurrentClientsDemo {
             return future.get(DEMO_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             return new ClientReport(name, 0, MESSAGES_PER_CLIENT,
-                    "quá " + DEMO_TIMEOUT_SECONDS + " giây chưa xong");
+                    "qua " + DEMO_TIMEOUT_SECONDS + " giay chua xong");
         } catch (ExecutionException e) {
             return new ClientReport(name, 0, MESSAGES_PER_CLIENT, String.valueOf(e.getCause()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return new ClientReport(name, 0, MESSAGES_PER_CLIENT, "bị ngắt");
+            return new ClientReport(name, 0, MESSAGES_PER_CLIENT, "bi ngat");
         }
     }
 
@@ -145,7 +145,7 @@ public final class ConcurrentClientsDemo {
 
                 socket.setSoTimeout(READ_TIMEOUT_MS);
                 for (int msg = 1; msg <= MESSAGES_PER_CLIENT; msg++) {
-                    String sent = name + " gửi câu " + msg;
+                    String sent = name + " gui cau " + msg;
                     String expected = ClientHandler.reverse(sent);
                     out.println(sent);
                     String reply = in.readLine();
@@ -153,7 +153,7 @@ public final class ConcurrentClientsDemo {
                     if (ok) {
                         correct++;
                     }
-                    ConsoleLog.print((ok ? "✔ " : "✘ ") + "\"" + sent + "\" → nhận \"" + reply + "\"");
+                    ConsoleLog.print((ok ? "[OK] " : "[X] ") + "\"" + sent + "\" -> nhan \"" + reply + "\"");
                     Thread.sleep(PAUSE_BETWEEN_MESSAGES_MS);
                 }
             }
@@ -162,31 +162,31 @@ public final class ConcurrentClientsDemo {
             return new ClientReport(name, correct, MESSAGES_PER_CLIENT, e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return new ClientReport(name, correct, MESSAGES_PER_CLIENT, "bị ngắt");
+            return new ClientReport(name, correct, MESSAGES_PER_CLIENT, "bi ngat");
         }
     }
 
     private static void printSummary(List<ClientReport> reports, ReverseServer server) {
         System.out.println();
-        System.out.println("┌────────────┬──────────────┬──────────┐");
-        System.out.println("│ Client     │ Đúng / Gửi   │ Kết quả  │");
-        System.out.println("├────────────┼──────────────┼──────────┤");
+        System.out.println("+------------+--------------+----------+");
+        System.out.println("| Client     | Dung / Gui   | Ket qua  |");
+        System.out.println("+------------+--------------+----------+");
         for (ClientReport r : reports) {
-            System.out.printf("│ %-10s │ %5d / %-4d │ %-8s │%n",
-                    r.name(), r.correct(), r.sent(), r.passed() ? "ĐẠT" : "LỖI");
+            System.out.printf("| %-10s | %5d / %-4d | %-8s |%n",
+                    r.name(), r.correct(), r.sent(), r.passed() ? "DAT" : "LOI");
         }
-        System.out.println("└────────────┴──────────────┴──────────┘");
+        System.out.println("+------------+--------------+----------+");
         reports.stream()
                 .filter(r -> r.error() != null)
-                .forEach(r -> System.out.println("  " + r.name() + " lỗi: " + r.error()));
-        System.out.println("Tổng số client server đã phục vụ : " + server.totalClients());
-        System.out.println("Số client được phục vụ ĐỒNG THỜI : " + server.peakConcurrentClients()
+                .forEach(r -> System.out.println("  " + r.name() + " loi: " + r.error()));
+        System.out.println("Tong so client server da phuc vu : " + server.totalClients());
+        System.out.println("So client duoc phuc vu DONG THOI : " + server.peakConcurrentClients()
                 + " (ThreadPool " + ReverseServer.POOL_SIZE + " worker)");
     }
 
     private static void printConclusion(boolean passed) {
         System.out.println(passed
-                ? "\n✅ KẾT LUẬN: server phục vụ đồng thời nhiều client và trả lời đúng cho từng client."
-                : "\n❌ KẾT LUẬN: có client nhận sai hoặc không nhận được phản hồi — xem log phía trên.");
+                ? "\n[OK] KET LUAN: server phuc vu dong thoi nhieu client va tra loi dung cho tung client."
+                : "\n[X] KET LUAN: co client nhan sai hoac khong nhan duoc phan hoi - xem log phia tren.");
     }
 }

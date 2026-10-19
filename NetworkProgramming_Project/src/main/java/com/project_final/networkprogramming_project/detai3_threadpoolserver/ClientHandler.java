@@ -58,7 +58,7 @@ final class ClientHandler implements Runnable {
     public void run() {
         String client = String.valueOf(socket.getRemoteSocketAddress());
         int activeNow = counter.enter();
-        ConsoleLog.print("Bắt đầu phục vụ client " + client + " (đang phục vụ: " + activeNow + ")");
+        ConsoleLog.print("Bat dau phuc vu client " + client + " (dang phuc vu: " + activeNow + ")");
 
         // try-with-resources: đóng reader/writer cũng đóng luôn socket bên dưới,
         // kể cả khi có exception giữa chừng → không rò rỉ file descriptor.
@@ -73,17 +73,17 @@ final class ClientHandler implements Runnable {
             // Chỉ worker này bị chặn; các worker khác trong pool vẫn chạy bình thường.
             while ((line = in.readLine()) != null) {
                 String reversed = reverse(line);
-                ConsoleLog.print("Client " + client + " gửi \"" + line + "\" → trả \"" + reversed + "\"");
+                ConsoleLog.print("Client " + client + " gui \"" + line + "\" -> tra \"" + reversed + "\"");
                 out.println(reversed);
             }
-            ConsoleLog.print("Client " + client + " đã ngắt kết nối");
+            ConsoleLog.print("Client " + client + " da ngat ket noi");
         } catch (IOException e) {
             // Client tắt ngang (đóng cửa sổ, mất mạng) → "Connection reset".
             // Chỉ ảnh hưởng client này, server và các client khác vẫn chạy tiếp.
-            ConsoleLog.print("Lỗi với client " + client + ": " + e.getMessage());
+            ConsoleLog.print("Loi voi client " + client + ": " + e.getMessage());
         } finally {
             int remaining = counter.exit();
-            ConsoleLog.print("Worker rảnh, trả về pool (còn phục vụ: " + remaining + ")");
+            ConsoleLog.print("Worker ranh, tra ve pool (con phuc vu: " + remaining + ")");
         }
     }
 }

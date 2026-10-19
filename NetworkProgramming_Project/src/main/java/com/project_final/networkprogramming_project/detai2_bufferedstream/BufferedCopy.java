@@ -115,7 +115,7 @@ public class BufferedCopy {
     private static final int DEMO_FILE_MB = 1;
 
     public static void main(String[] args) {
-        System.out.println("=== CHƯƠNG TRÌNH SAO CHÉP CÓ DÙNG BUFFER ===");
+        System.out.println("=== CHUONG TRINH SAO CHEP CO DUNG BUFFER ===");
         System.out.println();
 
         try {
@@ -128,7 +128,7 @@ public class BufferedCopy {
             }
         } catch (IOException e) {
             // Chương trình độc lập: báo lỗi rõ ràng và trả exit code khác 0
-            System.err.println("❌ Lỗi: " + e.getMessage());
+            System.err.println("[X] Loi: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -139,23 +139,23 @@ public class BufferedCopy {
         String src = BenchmarkUtils.getTestDir() + "/buf_demo_src.dat";
         String dest = BenchmarkUtils.getTestDir() + "/buf_demo_dest.dat";
 
-        System.out.println("Không có tham số → chạy demo với file tự tạo "
+        System.out.println("Khong co tham so -> chay demo voi file tu tao "
                 + DEMO_FILE_MB + " MB.");
         BenchmarkUtils.generateBinaryFile(src, DEMO_FILE_MB);
 
         try {
-            System.out.println("Đang sao chép TỪNG BYTE qua buffer "
+            System.out.println("Dang sao chep TUNG BYTE qua buffer "
                     + bufferLabel(DEFAULT_BUFFER_SIZE) + "...");
             long nanos = BenchmarkUtils.medianNanos(() -> copyWithDefaultBuffer(src, dest));
 
-            System.out.printf("✅ Xong: %.2f ms (trung vị, đã warm-up)%n",
+            System.out.printf("[OK] Xong: %.2f ms (trung vi, da warm-up)%n",
                     BenchmarkUtils.toMs(nanos));
             System.out.println();
-            System.out.println("Vẫn gọi read() từng byte, nhưng phần lớn lấy từ buffer trong RAM");
-            System.out.println("→ file " + DEMO_FILE_MB + " MB chỉ còn khoảng "
+            System.out.println("Van goi read() tung byte, nhung phan lon lay tu buffer trong RAM");
+            System.out.println("-> file " + DEMO_FILE_MB + " MB chi con khoang "
                     + (DEMO_FILE_MB * 1024 * 1024 / DEFAULT_BUFFER_SIZE)
-                    + " system call cho mỗi chiều.");
-            System.out.println("So sánh với UnbufferedCopy để thấy chênh lệch.");
+                    + " system call cho moi chieu.");
+            System.out.println("So sanh voi UnbufferedCopy de thay chenh lech.");
         } finally {
             BenchmarkUtils.cleanupTestFiles(); // dọn dù thành công hay thất bại
         }
@@ -163,22 +163,22 @@ public class BufferedCopy {
 
     /** Sao chép file người dùng chỉ định, đo 1 lần. */
     private static void copyUserFile(String src, String dest) throws IOException {
-        System.out.println("Nguồn: " + src);
-        System.out.println("Đích : " + dest);
+        System.out.println("Nguon: " + src);
+        System.out.println("Dich : " + dest);
 
         long start = System.nanoTime();
         copyWithDefaultBuffer(src, dest);
         double ms = (System.nanoTime() - start) / 1_000_000.0;
 
-        System.out.printf("✅ Sao chép xong trong %.2f ms%n", ms);
-        System.out.println("⚠️  Đây là phép đo MỘT LẦN nên chỉ mang tính tham khảo;");
-        System.out.println("    muốn số liệu so sánh được thì chạy menu Đề tài 2.");
+        System.out.printf("[OK] Sao chep xong trong %.2f ms%n", ms);
+        System.out.println("[!] Day la phep do MOT LAN nen chi mang tinh tham khao;");
+        System.out.println("    muon so lieu so sanh duoc thi chay menu De tai 2.");
     }
 
     /** In hướng dẫn khi tham số không hợp lệ. */
     private static void printUsage() {
-        System.out.println("Cách dùng:");
-        System.out.println("  java ...BufferedCopy                 → chạy demo tự tạo file");
-        System.out.println("  java ...BufferedCopy <nguồn> <đích>   → sao chép file có sẵn");
+        System.out.println("Cach dung:");
+        System.out.println("  java ...BufferedCopy                 -> chay demo tu tao file");
+        System.out.println("  java ...BufferedCopy <nguon> <dich>   -> sao chep file co san");
     }
 }

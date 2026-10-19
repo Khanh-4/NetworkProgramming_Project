@@ -100,7 +100,7 @@ public final class ReverseServer implements AutoCloseable {
      * khi server bị close() từ thread khác.
      */
     public void serve() {
-        ConsoleLog.print("Server lắng nghe cổng " + port() + ", ThreadPool cố định "
+        ConsoleLog.print("Server lang nghe cong " + port() + ", ThreadPool co dinh "
                 + POOL_SIZE + " worker");
         while (!serverSocket.isClosed()) {
             try {
@@ -111,13 +111,13 @@ public final class ReverseServer implements AutoCloseable {
             } catch (SocketException e) {
                 // close() từ thread khác làm accept() ném SocketException → thoát vòng lặp.
                 if (!serverSocket.isClosed()) {
-                    ConsoleLog.print("Lỗi socket khi accept: " + e.getMessage());
+                    ConsoleLog.print("Loi socket khi accept: " + e.getMessage());
                 }
             } catch (IOException e) {
-                ConsoleLog.print("Lỗi khi accept client: " + e.getMessage());
+                ConsoleLog.print("Loi khi accept client: " + e.getMessage());
             }
         }
-        ConsoleLog.print("Server ngừng nhận kết nối mới");
+        ConsoleLog.print("Server ngung nhan ket noi moi");
     }
 
     /**
@@ -145,16 +145,16 @@ public final class ReverseServer implements AutoCloseable {
     }
 
     private static void start(int port) {
-        System.out.println("=== ĐỀ TÀI 3: SERVER TCP ĐA LUỒNG (THREADPOOL) ===");
-        System.out.println("Mở thêm ít nhất 3 terminal và chạy Client ở mỗi terminal.");
-        System.out.println("Nhấn Ctrl+C để dừng server.\n");
+        System.out.println("=== DE TAI 3: SERVER TCP DA LUONG (THREADPOOL) ===");
+        System.out.println("Mo them it nhat 3 terminal va chay Client o moi terminal.");
+        System.out.println("Nhan Ctrl+C de dung server.\n");
         try (ReverseServer server = new ReverseServer(port, POOL_SIZE)) {
             server.serve();
         } catch (BindException e) {
-            System.out.println("❌ Cổng " + port + " đang bị chương trình khác chiếm."
-                    + " Hãy tắt server cũ hoặc chọn cổng khác.");
+            System.out.println("[X] Cong " + port + " dang bi chuong trinh khac chiem."
+                    + " Hay tat server cu hoac chon cong khac.");
         } catch (IOException e) {
-            System.out.println("❌ Không khởi động được server: " + e.getMessage());
+            System.out.println("[X] Khong khoi dong duoc server: " + e.getMessage());
         }
     }
 

@@ -55,14 +55,14 @@ public class UDPServer {
     }
 
     private static void start(int port) {
-        System.out.println("=== ĐỀ TÀI 5: UDP SERVER (PONG) ===");
+        System.out.println("=== DE TAI 5: UDP SERVER (PONG) ===");
         // new DatagramSocket(port) gắn (bind) vào 0.0.0.0:port → nhận gói từ mọi card mạng,
         // nên máy khác trong mạng LAN cũng gửi tới được.
         try (DatagramSocket socket = new DatagramSocket(port)) {
-            System.out.println("Server UDP lắng nghe cổng " + socket.getLocalPort() + ".");
+            System.out.println("Server UDP lang nghe cong " + socket.getLocalPort() + ".");
             printLocalAddresses();
             printNetstatHint(port);
-            System.out.println("Nhấn Ctrl+C để dừng server.\n");
+            System.out.println("Nhan Ctrl+C de dung server.\n");
 
             byte[] buffer = new byte[BUFFER_SIZE];
             while (true) {
@@ -72,9 +72,9 @@ public class UDPServer {
                 reply(socket, request);
             }
         } catch (BindException e) {
-            System.out.println("❌ Cổng UDP " + port + " đang bị chương trình khác chiếm.");
+            System.out.println("[X] Cong UDP " + port + " dang bi chuong trinh khac chiem.");
         } catch (IOException e) {
-            System.out.println("❌ Lỗi server UDP: " + e.getMessage());
+            System.out.println("[X] Loi server UDP: " + e.getMessage());
         }
     }
 
@@ -87,19 +87,19 @@ public class UDPServer {
 
         String answer = PING.equalsIgnoreCase(message)
                 ? PONG
-                : "Không hiểu \"" + message + "\" — hãy gửi \"" + PING + "\"";
+                : "Khong hieu \"" + message + "\" - hay gui \"" + PING + "\"";
         byte[] data = answer.getBytes(StandardCharsets.UTF_8);
 
         // Gửi về đúng địa chỉ + cổng lấy từ gói vừa nhận.
         DatagramPacket response = new DatagramPacket(data, data.length,
                 request.getAddress(), request.getPort());
         socket.send(response);
-        System.out.println("📩 Nhận \"" + message + "\" từ " + sender + "  →  trả \"" + answer + "\"");
+        System.out.println("Nhan \"" + message + "\" tu " + sender + "  ->  tra \"" + answer + "\"");
     }
 
     /** In các IPv4 của máy này để máy thứ hai biết gửi Ping tới địa chỉ nào. */
     private static void printLocalAddresses() {
-        System.out.println("Địa chỉ IP của máy này (nhập ở Client trên máy khác):");
+        System.out.println("Dia chi IP cua may nay (nhap o Client tren may khac):");
         try {
             for (NetworkInterface nic : Collections.list(NetworkInterface.getNetworkInterfaces())) {
                 if (!nic.isUp() || nic.isLoopback()) {
@@ -107,18 +107,18 @@ public class UDPServer {
                 }
                 Collections.list(nic.getInetAddresses()).stream()
                         .filter(Inet4Address.class::isInstance)
-                        .forEach(ip -> System.out.println("   • " + ip.getHostAddress()
+                        .forEach(ip -> System.out.println("   * " + ip.getHostAddress()
                                 + "  (" + nic.getDisplayName() + ")"));
             }
         } catch (SocketException e) {
-            System.out.println("   (không đọc được danh sách card mạng: " + e.getMessage() + ")");
+            System.out.println("   (khong doc duoc danh sach card mang: " + e.getMessage() + ")");
         }
     }
 
     static void printNetstatHint(int port) {
-        System.out.println("Kiểm tra cổng bằng netstat:");
+        System.out.println("Kiem tra cong bang netstat:");
         System.out.println("   Windows    : netstat -an -p UDP | findstr " + port);
-        System.out.println("   Linux/macOS: netstat -anu | grep " + port + "   (hoặc: ss -uan | grep " + port + ")");
+        System.out.println("   Linux/macOS: netstat -anu | grep " + port + "   (hoac: ss -uan | grep " + port + ")");
     }
 
     /** Chạy độc lập: java ...UDPServer [port] */

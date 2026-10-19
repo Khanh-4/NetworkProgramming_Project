@@ -40,8 +40,8 @@ public class UDPClient {
 
     /** Điểm vào từ menu chính; dùng chung Scanner của menu để không tranh System.in. */
     public static void run(Scanner scanner) {
-        System.out.println("=== ĐỀ TÀI 5: UDP CLIENT (PING) ===");
-        System.out.print("Nhập IP máy chạy Server (Enter = " + DEFAULT_HOST + "): ");
+        System.out.println("=== DE TAI 5: UDP CLIENT (PING) ===");
+        System.out.print("Nhap IP may chay Server (Enter = " + DEFAULT_HOST + "): ");
         String host = scanner.nextLine().trim();
         ping(host.isEmpty() ? DEFAULT_HOST : host, UDPServer.PORT);
     }
@@ -51,15 +51,15 @@ public class UDPClient {
         try {
             server = InetAddress.getByName(host);
         } catch (UnknownHostException e) {
-            System.out.println("❌ Không tìm thấy máy '" + host + "'.");
+            System.out.println("[X] Khong tim thay may '" + host + "'.");
             return;
         }
 
         try (DatagramSocket socket = new DatagramSocket()) {
             socket.setSoTimeout(TIMEOUT_MS);
-            System.out.println("Gửi " + PING_COUNT + " gói \"" + UDPServer.PING + "\" tới "
+            System.out.println("Gui " + PING_COUNT + " goi \"" + UDPServer.PING + "\" toi "
                     + server.getHostAddress() + ":" + port
-                    + " từ cổng cục bộ " + socket.getLocalPort() + "\n");
+                    + " tu cong cuc bo " + socket.getLocalPort() + "\n");
 
             int received = 0;
             for (int seq = 1; seq <= PING_COUNT; seq++) {
@@ -73,10 +73,10 @@ public class UDPClient {
             printStatistics(received);
             UDPServer.printNetstatHint(port);
         } catch (IOException e) {
-            System.out.println("❌ Lỗi socket UDP: " + e.getMessage());
+            System.out.println("[X] Loi socket UDP: " + e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            System.out.println("⚠️  Bị ngắt giữa chừng.");
+            System.out.println("[!] Bi ngat giua chung.");
         }
     }
 
@@ -97,17 +97,17 @@ public class UDPClient {
             String reply = new String(response.getData(), response.getOffset(), response.getLength(),
                     StandardCharsets.UTF_8);
             boolean correct = UDPServer.PONG.equals(reply);
-            System.out.printf("%s Gói #%d: nhận \"%s\" từ %s:%d — RTT = %.2f ms%n",
-                    correct ? "✅" : "⚠️ ", seq, reply,
+            System.out.printf("%s Goi #%d: nhan \"%s\" tu %s:%d - RTT = %.2f ms%n",
+                    correct ? "[OK]" : "[!] ", seq, reply,
                     response.getAddress().getHostAddress(), response.getPort(), rttMs);
             return correct;
         } catch (SocketTimeoutException e) {
-            System.out.println("❌ Gói #" + seq + ": quá " + TIMEOUT_MS + " ms không có phản hồi (mất gói"
-                    + " hoặc server chưa chạy)");
+            System.out.println("[X] Goi #" + seq + ": qua " + TIMEOUT_MS + " ms khong co phan hoi (mat goi"
+                    + " hoac server chua chay)");
             return false;
         } catch (PortUnreachableException e) {
             // Một số hệ điều hành báo ngay khi cổng đích không có ai lắng nghe (ICMP Port Unreachable).
-            System.out.println("❌ Gói #" + seq + ": cổng " + port + " trên server không có chương trình nào nghe");
+            System.out.println("[X] Goi #" + seq + ": cong " + port + " tren server khong co chuong trinh nao nghe");
             return false;
         }
     }
@@ -115,8 +115,8 @@ public class UDPClient {
     private static void printStatistics(int received) {
         int lost = PING_COUNT - received;
         System.out.println();
-        System.out.println("--- Thống kê ---");
-        System.out.printf("Đã gửi = %d, Nhận được = %d, Mất = %d (%.0f%% mất gói)%n",
+        System.out.println("--- Thong ke ---");
+        System.out.printf("Da gui = %d, Nhan duoc = %d, Mat = %d (%.0f%% mat goi)%n",
                 PING_COUNT, received, lost, 100.0 * lost / PING_COUNT);
     }
 

@@ -59,31 +59,31 @@ public class TCPServer {
     }
 
     private static void start(int port) {
-        System.out.println("=== ĐỀ TÀI 4: TCP SERVER ===");
+        System.out.println("=== DE TAI 4: TCP SERVER ===");
         // try-with-resources: ServerSocket được đóng khi thoát, giải phóng cổng 12345.
         try (ServerSocket serverSocket = new ServerSocket(port)) {
-            System.out.println("Server lắng nghe trên cổng " + serverSocket.getLocalPort()
-                    + ". Mở cửa sổ console khác và chạy Client (menu 4 → b).");
-            System.out.println("Nhấn Ctrl+C để dừng server.\n");
+            System.out.println("Server lang nghe tren cong " + serverSocket.getLocalPort()
+                    + ". Mo cua so console khac va chay Client (menu 4 -> b).");
+            System.out.println("Nhan Ctrl+C de dung server.\n");
             while (true) {
-                System.out.println("⏳ Đang chờ client kết nối (accept)...");
+                System.out.println(" Dang cho client ket noi (accept)...");
                 // accept() BLOCK cho đến khi có client hoàn tất bắt tay 3 bước.
                 Socket client = serverSocket.accept();
                 serve(client);
             }
         } catch (BindException e) {
-            System.out.println("❌ Cổng " + port + " đang bị chương trình khác chiếm."
-                    + " Hãy tắt server cũ rồi chạy lại.");
+            System.out.println("[X] Cong " + port + " dang bi chuong trinh khac chiem."
+                    + " Hay tat server cu roi chay lai.");
         } catch (IOException e) {
-            System.out.println("❌ Lỗi server: " + e.getMessage());
+            System.out.println("[X] Loi server: " + e.getMessage());
         }
     }
 
     /** Nói chuyện với một client cho đến khi client đóng kết nối. */
     private static void serve(Socket client) {
         String who = client.getInetAddress().getHostAddress() + ":" + client.getPort();
-        System.out.println("✅ Client kết nối: " + who
-                + "  →  server " + client.getLocalAddress().getHostAddress() + ":" + client.getLocalPort());
+        System.out.println("[OK] Client ket noi: " + who
+                + "  ->  server " + client.getLocalAddress().getHostAddress() + ":" + client.getLocalPort());
 
         // Hai đầu phải dùng CÙNG charset (UTF-8), nếu không tiếng Việt sẽ thành ký tự rác.
         try (client;
@@ -97,14 +97,14 @@ public class TCPServer {
             String message;
             // readLine() trả về null khi client đóng kết nối (nhận được FIN).
             while ((message = in.readLine()) != null) {
-                System.out.println("📩 [" + who + "] " + message);
+                System.out.println("[" + who + "] " + message);
                 out.println(REPLY);
             }
-            System.out.println("👋 Client " + who + " đã ngắt kết nối.\n");
+            System.out.println("Client " + who + " da ngat ket noi.\n");
         } catch (IOException e) {
             // Client tắt ngang cửa sổ → "Connection reset". Server không chết,
             // chỉ bỏ client này và quay lại chờ client khác.
-            System.out.println("⚠️  Mất kết nối với " + who + ": " + e.getMessage() + "\n");
+            System.out.println("[!] Mat ket noi voi " + who + ": " + e.getMessage() + "\n");
         }
     }
 

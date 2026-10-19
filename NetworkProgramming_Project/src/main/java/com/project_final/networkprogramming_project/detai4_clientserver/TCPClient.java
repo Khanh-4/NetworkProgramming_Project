@@ -43,8 +43,8 @@ public class TCPClient {
      * System.in sẽ tranh buffer đầu vào với Scanner cũ và "nuốt" mất dòng nhập.
      */
     public static void run(Scanner scanner) {
-        System.out.println("=== ĐỀ TÀI 4: TCP CLIENT ===");
-        System.out.print("Nhập địa chỉ server (Enter = " + DEFAULT_HOST + "): ");
+        System.out.println("=== DE TAI 4: TCP CLIENT ===");
+        System.out.print("Nhap dia chi server (Enter = " + DEFAULT_HOST + "): ");
         String host = scanner.nextLine().trim();
         chat(host.isEmpty() ? DEFAULT_HOST : host, TCPServer.PORT, scanner);
     }
@@ -57,12 +57,12 @@ public class TCPClient {
                      new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8), true)) {
 
             socket.setSoTimeout(READ_TIMEOUT_MS);
-            System.out.println("✅ Đã kết nối server " + socket.getInetAddress().getHostAddress()
-                    + ":" + socket.getPort() + " từ cổng cục bộ " + socket.getLocalPort());
-            System.out.println("Gõ chuỗi rồi Enter để gửi. Gõ '" + QUIT_COMMAND + "' để thoát.\n");
+            System.out.println("[OK] Da ket noi server " + socket.getInetAddress().getHostAddress()
+                    + ":" + socket.getPort() + " tu cong cuc bo " + socket.getLocalPort());
+            System.out.println("Go chuoi roi Enter de gui. Go '" + QUIT_COMMAND + "' de thoat.\n");
 
             while (true) {
-                System.out.print("Gửi  > ");
+                System.out.print("Gui  > ");
                 if (!scanner.hasNextLine()) {
                     break;
                 }
@@ -73,22 +73,22 @@ public class TCPClient {
                 out.println(message);
                 String reply = in.readLine();
                 if (reply == null) {
-                    System.out.println("⚠️  Server đã đóng kết nối.");
+                    System.out.println("[!] Server da dong ket noi.");
                     break;
                 }
-                System.out.println("Nhận < " + reply);
+                System.out.println("Nhan < " + reply);
             }
-            System.out.println("👋 Đã ngắt kết nối.");
+            System.out.println("Da ngat ket noi.");
         } catch (UnknownHostException e) {
-            System.out.println("❌ Không tìm thấy máy chủ '" + host + "'.");
+            System.out.println("[X] Khong tim thay may chu '" + host + "'.");
         } catch (ConnectException e) {
-            System.out.println("❌ Không kết nối được " + host + ":" + port
-                    + ". Server đã chạy chưa? (menu 4 → a)");
+            System.out.println("[X] Khong ket noi duoc " + host + ":" + port
+                    + ". Server da chay chua? (menu 4 -> a)");
         } catch (SocketTimeoutException e) {
-            System.out.println("❌ Quá " + READ_TIMEOUT_MS / 1000 + " giây server không phản hồi."
-                    + " Có thể server đang bận phục vụ client khác.");
+            System.out.println("[X] Qua " + READ_TIMEOUT_MS / 1000 + " giay server khong phan hoi."
+                    + " Co the server dang ban phuc vu client khac.");
         } catch (IOException e) {
-            System.out.println("❌ Lỗi kết nối: " + e.getMessage());
+            System.out.println("[X] Loi ket noi: " + e.getMessage());
         }
     }
 

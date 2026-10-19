@@ -35,8 +35,8 @@ public class CalculatorClient {
 
     /** Điểm vào từ menu chính; dùng chung Scanner của menu để không tranh System.in. */
     public static void run(Scanner scanner) {
-        System.out.println("=== ĐỀ TÀI 6: RMI CLIENT ===");
-        System.out.print("Nhập IP máy chạy Server (Enter = " + DEFAULT_HOST + "): ");
+        System.out.println("=== DE TAI 6: RMI CLIENT ===");
+        System.out.print("Nhap IP may chay Server (Enter = " + DEFAULT_HOST + "): ");
         String host = scanner.nextLine().trim();
         start(host.isEmpty() ? DEFAULT_HOST : host);
     }
@@ -49,14 +49,14 @@ public class CalculatorClient {
             invoke("multiply(15, 5)", () -> calc.multiply(15, 5));
             invoke("divide(15, 5)", () -> calc.divide(15, 5));
             invoke("divide(1, 0)", () -> calc.divide(1, 0));
-            System.out.println("✅ Gọi hàm từ xa thành công. Xem cửa sổ Server để thấy bước ② và ③.");
+            System.out.println("[OK] Goi ham tu xa thanh cong. Xem cua so Server de thay buoc (2) va (3).");
         } catch (ConnectException e) {
-            System.out.println("❌ Không kết nối được tới " + host + ". Server đã chạy chưa? (menu 6 → a)");
+            System.out.println("[X] Khong ket noi duoc toi " + host + ". Server da chay chua? (menu 6 -> a)");
         } catch (NotBoundException e) {
-            System.out.println("❌ Registry không có tên \"" + CalculatorServer.SERVICE_NAME
-                    + "\". Server chưa đăng ký hoặc đã tắt.");
+            System.out.println("[X] Registry khong co ten \"" + CalculatorServer.SERVICE_NAME
+                    + "\". Server chua dang ky hoac da tat.");
         } catch (RemoteException e) {
-            System.out.println("❌ Lỗi RMI: " + e.getMessage());
+            System.out.println("[X] Loi RMI: " + e.getMessage());
         }
     }
 
@@ -65,30 +65,30 @@ public class CalculatorClient {
         Registry registry = LocateRegistry.getRegistry(host, CalculatorServer.REGISTRY_PORT);
         CalculatorInterface calc = (CalculatorInterface) registry.lookup(CalculatorServer.SERVICE_NAME);
 
-        System.out.println("(0) lookup(\"" + CalculatorServer.SERVICE_NAME + "\") tại registry "
-                + host + ":" + CalculatorServer.REGISTRY_PORT + " → nhận về STUB:");
-        System.out.println("    Lớp của stub     : " + calc.getClass().getName()
+        System.out.println("(0) lookup(\"" + CalculatorServer.SERVICE_NAME + "\") tai registry "
+                + host + ":" + CalculatorServer.REGISTRY_PORT + " -> nhan ve STUB:");
+        System.out.println("    Lop cua stub     : " + calc.getClass().getName()
                 + (Proxy.isProxyClass(calc.getClass()) ? "  (dynamic proxy do RMI sinh ra)" : ""));
         if (Proxy.isProxyClass(calc.getClass())) {
-            System.out.println("    Xử lý lời gọi bởi: "
+            System.out.println("    Xu ly loi goi boi: "
                     + Proxy.getInvocationHandler(calc).getClass().getName());
         }
         // toString() của stub chứa địa chỉ endpoint (IP:cổng) của đối tượng thật bên server.
-        System.out.println("    Trỏ tới          : " + calc + "\n");
+        System.out.println("    Tro toi          : " + calc + "\n");
         return calc;
     }
 
     /** Gọi một hàm từ xa và in bước ① (trước khi gửi) và ④ (sau khi nhận). */
     private static void invoke(String expression, RemoteCall call) throws RemoteException {
-        System.out.println("① [Stub] Gọi calc." + expression
-                + " → Stub đóng gói tham số, gửi qua TCP tới Server");
+        System.out.println("(1) [Stub] Goi calc." + expression
+                + " -> Stub dong goi tham so, gui qua TCP toi Server");
         try {
             double result = call.call();
-            System.out.println("④ [Stub] Nhận và giải mã kết quả: " + expression + " = " + result + "\n");
+            System.out.println("(4) [Stub] Nhan va giai ma ket qua: " + expression + " = " + result + "\n");
         } catch (ArithmeticException e) {
             // Exception ném ở Server được tuần tự hoá, gửi về và ném lại ở đây.
-            System.out.println("④ [Stub] Nhận exception từ Server: " + e.getClass().getSimpleName()
-                    + " — " + e.getMessage() + "\n");
+            System.out.println("(4) [Stub] Nhan exception tu Server: " + e.getClass().getSimpleName()
+                    + " - " + e.getMessage() + "\n");
         }
     }
 

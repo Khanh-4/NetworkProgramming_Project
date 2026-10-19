@@ -96,7 +96,7 @@ public class UnbufferedCopy {
     private static final int DEMO_FILE_MB = 1;
 
     public static void main(String[] args) {
-        System.out.println("=== CHƯƠNG TRÌNH SAO CHÉP KHÔNG DÙNG BUFFER ===");
+        System.out.println("=== CHUONG TRINH SAO CHEP KHONG DUNG BUFFER ===");
         System.out.println();
 
         try {
@@ -110,7 +110,7 @@ public class UnbufferedCopy {
         } catch (IOException e) {
             // Chương trình độc lập: báo lỗi rõ ràng và trả exit code khác 0
             // để script gọi nó biết là đã thất bại.
-            System.err.println("❌ Lỗi: " + e.getMessage());
+            System.err.println("[X] Loi: " + e.getMessage());
             System.exit(1);
         }
     }
@@ -121,20 +121,20 @@ public class UnbufferedCopy {
         String src = BenchmarkUtils.getTestDir() + "/unbuf_demo_src.dat";
         String dest = BenchmarkUtils.getTestDir() + "/unbuf_demo_dest.dat";
 
-        System.out.println("Không có tham số → chạy demo với file tự tạo "
+        System.out.println("Khong co tham so -> chay demo voi file tu tao "
                 + DEMO_FILE_MB + " MB.");
         BenchmarkUtils.generateBinaryFile(src, DEMO_FILE_MB);
 
         try {
-            System.out.println("Đang sao chép TỪNG BYTE (không buffer)...");
+            System.out.println("Dang sao chep TUNG BYTE (khong buffer)...");
             long nanos = BenchmarkUtils.medianNanos(() -> copyByteByByte(src, dest));
 
-            System.out.printf("✅ Xong: %.2f ms (trung vị, đã warm-up)%n",
+            System.out.printf("[OK] Xong: %.2f ms (trung vi, da warm-up)%n",
                     BenchmarkUtils.toMs(nanos));
             System.out.println();
-            System.out.println("Mỗi byte tốn 1 system call read() + 1 system call write()");
-            System.out.println("→ file " + DEMO_FILE_MB + " MB = hơn 2 triệu system call.");
-            System.out.println("So sánh với BufferedCopy để thấy chênh lệch.");
+            System.out.println("Moi byte ton 1 system call read() + 1 system call write()");
+            System.out.println("-> file " + DEMO_FILE_MB + " MB = hon 2 trieu system call.");
+            System.out.println("So sanh voi BufferedCopy de thay chenh lech.");
         } finally {
             BenchmarkUtils.cleanupTestFiles(); // dọn dù thành công hay thất bại
         }
@@ -142,22 +142,22 @@ public class UnbufferedCopy {
 
     /** Sao chép file người dùng chỉ định, đo 1 lần. */
     private static void copyUserFile(String src, String dest) throws IOException {
-        System.out.println("Nguồn: " + src);
-        System.out.println("Đích : " + dest);
+        System.out.println("Nguon: " + src);
+        System.out.println("Dich : " + dest);
 
         long start = System.nanoTime();
         copyByteByByte(src, dest);
         double ms = (System.nanoTime() - start) / 1_000_000.0;
 
-        System.out.printf("✅ Sao chép xong trong %.2f ms%n", ms);
-        System.out.println("⚠️  Đây là phép đo MỘT LẦN nên chỉ mang tính tham khảo;");
-        System.out.println("    muốn số liệu so sánh được thì chạy menu Đề tài 2.");
+        System.out.printf("[OK] Sao chep xong trong %.2f ms%n", ms);
+        System.out.println("[!] Day la phep do MOT LAN nen chi mang tinh tham khao;");
+        System.out.println("    muon so lieu so sanh duoc thi chay menu De tai 2.");
     }
 
     /** In hướng dẫn khi tham số không hợp lệ. */
     private static void printUsage() {
-        System.out.println("Cách dùng:");
-        System.out.println("  java ...UnbufferedCopy                 → chạy demo tự tạo file");
-        System.out.println("  java ...UnbufferedCopy <nguồn> <đích>   → sao chép file có sẵn");
+        System.out.println("Cach dung:");
+        System.out.println("  java ...UnbufferedCopy                 -> chay demo tu tao file");
+        System.out.println("  java ...UnbufferedCopy <nguon> <dich>   -> sao chep file co san");
     }
 }

@@ -34,13 +34,13 @@ public class NetworkProgramming_Project {
 
         while (running) {
             printMenu();
-            System.out.print("👉 Chọn đề tài (0 để thoát): ");
+            System.out.print("-> Chon de tai (0 de thoat): ");
 
             int choice;
             try {
                 choice = Integer.parseInt(scanner.nextLine().trim());
             } catch (NumberFormatException e) {
-                System.out.println("⚠️  Vui lòng nhập số từ 0-6!\n");
+                System.out.println("[!] Vui long nhap so tu 0-6!\n");
                 continue;
             }
 
@@ -49,7 +49,7 @@ public class NetworkProgramming_Project {
             switch (choice) {
                 case 0:
                     running = false;
-                    System.out.println("👋 Tạm biệt! Kết thúc chương trình.");
+                    System.out.println("Tam biet! Ket thuc chuong trinh.");
                     break;
                 case 1:
                     com.project_final.networkprogramming_project.detai1_bytecharstream.StreamComparisonGUI.run();
@@ -70,12 +70,12 @@ public class NetworkProgramming_Project {
                     runDetai6Menu(scanner);
                     break;
                 default:
-                    System.out.println("⚠️  Không có đề tài số " + choice + "! Vui lòng chọn 0-6.");
+                    System.out.println("[!] Khong co de tai so " + choice + "! Vui long chon 0-6.");
             }
 
             if (running) {
                 System.out.println("\n" + "=".repeat(60));
-                System.out.println("Nhấn Enter để quay lại menu...");
+                System.out.println("Nhan Enter de quay lai menu...");
                 scanner.nextLine();
             }
         }
@@ -88,21 +88,21 @@ public class NetworkProgramming_Project {
      */
     private static void printMenu() {
         System.out.println();
-        System.out.println("╔══════════════════════════════════════════════════════════════╗");
-        System.out.println("║         PROJECT CUỐI KỲ - LẬP TRÌNH MẠNG MÁY TÍNH         ║");
-        System.out.println("║              Nhóm: Khánh - Quân - Hiếu                     ║");
-        System.out.println("╠══════════════════════════════════════════════════════════════╣");
-        System.out.println("║                                                             ║");
-        System.out.println("║  [1] Đề tài 1: Luồng Byte vs Ký tự       (Khánh)           ║");
-        System.out.println("║  [2] Đề tài 2: Buffered Stream            (Khánh)           ║");
-        System.out.println("║  [3] Đề tài 3: Server đa luồng TCP       (Quân)            ║");
-        System.out.println("║  [4] Đề tài 4: TCP Client-Server          (Quân)            ║");
-        System.out.println("║  [5] Đề tài 5: UDP Ping-Pong              (Hiếu)            ║");
-        System.out.println("║  [6] Đề tài 6: Java RMI                   (Hiếu)            ║");
-        System.out.println("║                                                             ║");
-        System.out.println("║  [0] Thoát                                                  ║");
-        System.out.println("║                                                             ║");
-        System.out.println("╚══════════════════════════════════════════════════════════════╝");
+        System.out.println("+==============================================================+");
+        System.out.println("|          PROJECT CUOI KY - LAP TRINH MANG MAY TINH           |");
+        System.out.println("|                  Nhom: Khanh - Quan - Hieu                   |");
+        System.out.println("+==============================================================+");
+        System.out.println("|                                                              |");
+        System.out.println("|  [1] De tai 1: Luong Byte vs Ky tu        (Khanh)            |");
+        System.out.println("|  [2] De tai 2: Buffered Stream            (Khanh)            |");
+        System.out.println("|  [3] De tai 3: Server da luong TCP        (Quan)             |");
+        System.out.println("|  [4] De tai 4: TCP Client-Server          (Quan)             |");
+        System.out.println("|  [5] De tai 5: UDP Ping-Pong              (Hieu)             |");
+        System.out.println("|  [6] De tai 6: Java RMI                   (Hieu)             |");
+        System.out.println("|                                                              |");
+        System.out.println("|  [0] Thoat                                                   |");
+        System.out.println("|                                                              |");
+        System.out.println("+==============================================================+");
     }
 
     /**
@@ -110,11 +110,11 @@ public class NetworkProgramming_Project {
      * Chọn chạy Server, Client tương tác, hoặc demo tự động nhiều client song song.
      */
     private static void runDetai3Menu(Scanner scanner) {
-        System.out.println("--- ĐỀ TÀI 3: SERVER ĐA LUỒNG (THREADPOOL) ---");
-        System.out.println("  [a] Chạy Server (chạy trước)");
-        System.out.println("  [b] Chạy Client (mở ≥3 terminal khác, mỗi terminal 1 client)");
-        System.out.println("  [c] Demo tự động: 5 client song song + tự kiểm tra kết quả");
-        System.out.print("👉 Chọn: ");
+        System.out.println("--- DE TAI 3: SERVER DA LUONG (THREADPOOL) ---");
+        System.out.println("  [a] Chay Server (chay truoc)");
+        System.out.println("  [b] Chay Client (mo >=3 terminal khac, moi terminal 1 client)");
+        System.out.println("  [c] Demo tu dong: 5 client song song + tu kiem tra ket qua");
+        System.out.print("-> Chon: ");
         String sub = scanner.nextLine().trim().toLowerCase();
 
         switch (sub) {
@@ -128,7 +128,7 @@ public class NetworkProgramming_Project {
                 ConcurrentClientsDemo.run();
                 break;
             default:
-                System.out.println("⚠️  Lựa chọn không hợp lệ!");
+                System.out.println("[!] Lua chon khong hop le!");
         }
     }
 
@@ -137,10 +137,10 @@ public class NetworkProgramming_Project {
      * Chọn chạy Server hoặc Client.
      */
     private static void runDetai4Menu(Scanner scanner) {
-        System.out.println("--- ĐỀ TÀI 4: TCP CLIENT-SERVER ---");
-        System.out.println("  [a] Chạy Server (chạy trước)");
-        System.out.println("  [b] Chạy Client (chạy sau, ở terminal khác)");
-        System.out.print("👉 Chọn: ");
+        System.out.println("--- DE TAI 4: TCP CLIENT-SERVER ---");
+        System.out.println("  [a] Chay Server (chay truoc)");
+        System.out.println("  [b] Chay Client (chay sau, o terminal khac)");
+        System.out.print("-> Chon: ");
         String sub = scanner.nextLine().trim().toLowerCase();
 
         switch (sub) {
@@ -151,7 +151,7 @@ public class NetworkProgramming_Project {
                 TCPClient.run(scanner);
                 break;
             default:
-                System.out.println("⚠️  Lựa chọn không hợp lệ!");
+                System.out.println("[!] Lua chon khong hop le!");
         }
     }
 
@@ -160,10 +160,10 @@ public class NetworkProgramming_Project {
      * Chọn chạy Server hoặc Client.
      */
     private static void runDetai5Menu(Scanner scanner) {
-        System.out.println("--- ĐỀ TÀI 5: UDP PING-PONG ---");
-        System.out.println("  [a] Chạy UDP Server (Pong) - chạy trước");
-        System.out.println("  [b] Chạy UDP Client (Ping) - chạy sau");
-        System.out.print("👉 Chọn: ");
+        System.out.println("--- DE TAI 5: UDP PING-PONG ---");
+        System.out.println("  [a] Chay UDP Server (Pong) - chay truoc");
+        System.out.println("  [b] Chay UDP Client (Ping) - chay sau");
+        System.out.print("-> Chon: ");
         String sub = scanner.nextLine().trim().toLowerCase();
 
         switch (sub) {
@@ -174,7 +174,7 @@ public class NetworkProgramming_Project {
                 UDPClient.run(scanner);
                 break;
             default:
-                System.out.println("⚠️  Lựa chọn không hợp lệ!");
+                System.out.println("[!] Lua chon khong hop le!");
         }
     }
 
@@ -183,10 +183,10 @@ public class NetworkProgramming_Project {
      * Chọn chạy Server hoặc Client.
      */
     private static void runDetai6Menu(Scanner scanner) {
-        System.out.println("--- ĐỀ TÀI 6: JAVA RMI ---");
-        System.out.println("  [a] Chạy RMI Server (dùng rmiregistry có sẵn hoặc tự tạo) - chạy trước");
-        System.out.println("  [b] Chạy RMI Client (gọi hàm từ xa) - chạy sau");
-        System.out.print("👉 Chọn: ");
+        System.out.println("--- DE TAI 6: JAVA RMI ---");
+        System.out.println("  [a] Chay RMI Server (dung rmiregistry co san hoac tu tao) - chay truoc");
+        System.out.println("  [b] Chay RMI Client (goi ham tu xa) - chay sau");
+        System.out.print("-> Chon: ");
         String sub = scanner.nextLine().trim().toLowerCase();
 
         switch (sub) {
@@ -197,7 +197,7 @@ public class NetworkProgramming_Project {
                 CalculatorClient.run(scanner);
                 break;
             default:
-                System.out.println("⚠️  Lựa chọn không hợp lệ!");
+                System.out.println("[!] Lua chon khong hop le!");
         }
     }
 }

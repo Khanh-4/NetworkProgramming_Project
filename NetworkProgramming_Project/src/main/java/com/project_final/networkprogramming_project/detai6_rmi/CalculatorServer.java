@@ -83,7 +83,7 @@ public class CalculatorServer extends UnicastRemoteObject implements CalculatorI
     public double divide(double a, double b) {
         return execute("divide", a, b, (x, y) -> {
             if (y == 0) {
-                throw new ArithmeticException("Không thể chia cho 0");
+                throw new ArithmeticException("Khong the chia cho 0");
             }
             return x / y;
         });
@@ -96,17 +96,17 @@ public class CalculatorServer extends UnicastRemoteObject implements CalculatorI
      */
     private double execute(String operation, double a, double b, DoubleBinaryOperator formula) {
         String call = operation + "(" + a + ", " + b + ")";
-        System.out.println("② [Skeleton] RMI runtime nhận lời gọi " + call + " từ client "
-                + clientHost() + " trên thread '" + Thread.currentThread().getName()
-                + "', giải mã tham số rồi chuyển cho Server");
+        System.out.println("(2) [Skeleton] RMI runtime nhan loi goi " + call + " tu client "
+                + clientHost() + " tren thread '" + Thread.currentThread().getName()
+                + "', giai ma tham so roi chuyen cho Server");
         try {
             double result = formula.applyAsDouble(a, b);
-            System.out.println("③ [Server]   Thực thi " + call + " = " + result
-                    + " → Skeleton đóng gói kết quả gửi về Stub\n");
+            System.out.println("(3) [Server]   Thuc thi " + call + " = " + result
+                    + " -> Skeleton dong goi ket qua gui ve Stub\n");
             return result;
         } catch (ArithmeticException e) {
-            System.out.println("③ [Server]   " + call + " lỗi: " + e.getMessage()
-                    + " → exception được gửi về Client\n");
+            System.out.println("(3) [Server]   " + call + " loi: " + e.getMessage()
+                    + " -> exception duoc gui ve Client\n");
             throw e;
         }
     }
@@ -115,7 +115,7 @@ public class CalculatorServer extends UnicastRemoteObject implements CalculatorI
         try {
             return RemoteServer.getClientHost();
         } catch (ServerNotActiveException e) {
-            return "(gọi cục bộ)";
+            return "(goi cuc bo)";
         }
     }
 
@@ -127,11 +127,11 @@ public class CalculatorServer extends UnicastRemoteObject implements CalculatorI
         Registry existing = LocateRegistry.getRegistry(REGISTRY_PORT);
         try {
             existing.list(); // Gọi thử: ném RemoteException nếu không có registry nào ở cổng này
-            System.out.println("🔗 Đã kết nối rmiregistry có sẵn ở cổng " + REGISTRY_PORT);
+            System.out.println("Da ket noi rmiregistry co san o cong " + REGISTRY_PORT);
             return existing;
         } catch (RemoteException e) {
             ownedRegistry = LocateRegistry.createRegistry(REGISTRY_PORT);
-            System.out.println("🔗 Chưa có rmiregistry → tự tạo registry ở cổng " + REGISTRY_PORT);
+            System.out.println("Chua co rmiregistry -> tu tao registry o cong " + REGISTRY_PORT);
             return ownedRegistry;
         }
     }
@@ -142,19 +142,19 @@ public class CalculatorServer extends UnicastRemoteObject implements CalculatorI
     }
 
     private static void start() {
-        System.out.println("=== ĐỀ TÀI 6: RMI SERVER ===");
+        System.out.println("=== DE TAI 6: RMI SERVER ===");
         try {
             Registry registry = obtainRegistry();
             CalculatorServer server = new CalculatorServer();
             // rebind: ghi đè nếu tên đã tồn tại (ví dụ lần chạy server trước chưa dọn).
             registry.rebind(SERVICE_NAME, server);
-            System.out.println("✅ Đã đăng ký \"" + SERVICE_NAME + "\" vào registry. Các tên hiện có: "
+            System.out.println("[OK] Da dang ky \"" + SERVICE_NAME + "\" vao registry. Cac ten hien co: "
                     + String.join(", ", registry.list()));
-            System.out.println("Mở cửa sổ khác và chạy Client (menu 6 → b). Nhấn Ctrl+C để dừng.");
-            System.out.println("Client ở máy khác: chạy server với -Djava.rmi.server.hostname=<IP máy này>\n");
+            System.out.println("Mo cua so khac va chay Client (menu 6 -> b). Nhan Ctrl+C de dung.");
+            System.out.println("Client o may khac: chay server voi -Djava.rmi.server.hostname=<IP may nay>\n");
             waitForever();
         } catch (RemoteException e) {
-            System.out.println("❌ Không khởi động được RMI server: " + e.getMessage());
+            System.out.println("[X] Khong khoi dong duoc RMI server: " + e.getMessage());
         }
     }
 
